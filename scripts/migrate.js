@@ -8,7 +8,13 @@ async function migrate() {
     path.join(__dirname, "../src/lib/schema.sql"),
     "utf-8"
   );
-  await sql(schema);
+  const statements = schema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  for (const statement of statements) {
+    await sql(statement);
+  }
   console.log("Migration complete");
 }
 

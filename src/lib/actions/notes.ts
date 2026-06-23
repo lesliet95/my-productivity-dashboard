@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import sql from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export type Note = {
   id: number;
@@ -13,7 +13,7 @@ export type Note = {
 };
 
 export async function getNotes(): Promise<Note[]> {
-  const rows = await sql`SELECT * FROM notes ORDER BY updated_at DESC`;
+  const rows = await getDb()`SELECT * FROM notes ORDER BY updated_at DESC`;
   return rows as Note[];
 }
 
@@ -22,7 +22,7 @@ export async function createNote(data: {
   content?: string;
   tags?: string[];
 }) {
-  await sql`
+  await getDb()`
     INSERT INTO notes (title, content, tags)
     VALUES (${data.title}, ${data.content ?? ""}, ${data.tags ?? []})
   `;
@@ -34,7 +34,7 @@ export async function updateNote(
   id: number,
   data: { title?: string; content?: string; tags?: string[] }
 ) {
-  await sql`
+  await getDb()`
     UPDATE notes SET
       title = COALESCE(${data.title ?? null}, title),
       content = COALESCE(${data.content ?? null}, content),
@@ -46,7 +46,7 @@ export async function updateNote(
 }
 
 export async function deleteNote(id: number) {
-  await sql`DELETE FROM notes WHERE id = ${id}`;
+  await getDb()`DELETE FROM notes WHERE id = ${id}`;
   revalidatePath("/notes");
   revalidatePath("/");
 }

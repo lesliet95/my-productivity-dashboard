@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import sql from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export type Habit = {
   id: number;
@@ -15,7 +15,7 @@ export type Habit = {
 };
 
 export async function getHabits(): Promise<Habit[]> {
-  const rows = await sql`
+  const rows = await getDb()`
     SELECT
       h.*,
       EXISTS(
@@ -39,7 +39,7 @@ export async function createHabit(data: {
   frequency?: string;
   color?: string;
 }) {
-  await sql`
+  await getDb()`
     INSERT INTO habits (name, description, frequency, color)
     VALUES (${data.name}, ${data.description ?? null}, ${data.frequency ?? "daily"}, ${data.color ?? "#6366f1"})
   `;
@@ -48,16 +48,16 @@ export async function createHabit(data: {
 }
 
 export async function toggleHabit(id: number) {
-  const existing = await sql`
+  const existing = await getDb()`
     SELECT id FROM habit_completions
     WHERE habit_id = ${id} AND completed_on = CURRENT_DATE
   `;
   if (existing.length > 0) {
-    await sql`
+    await getDb()`
       DELETE FROM habit_completions WHERE habit_id = ${id} AND completed_on = CURRENT_DATE
     `;
   } else {
-    await sql`
+    await getDb()`
       INSERT INTO habit_completions (habit_id) VALUES (${id})
       ON CONFLICT (habit_id, completed_on) DO NOTHING
     `;
@@ -67,7 +67,7 @@ export async function toggleHabit(id: number) {
 }
 
 export async function deleteHabit(id: number) {
-  await sql`DELETE FROM habits WHERE id = ${id}`;
+  await getDb()`DELETE FROM habits WHERE id = ${id}`;
   revalidatePath("/habits");
   revalidatePath("/");
 }

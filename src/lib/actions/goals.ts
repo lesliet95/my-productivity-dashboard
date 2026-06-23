@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import sql from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export type Goal = {
   id: number;
@@ -15,7 +15,7 @@ export type Goal = {
 };
 
 export async function getGoals(): Promise<Goal[]> {
-  const rows = await sql`SELECT * FROM goals ORDER BY status ASC, target_date ASC NULLS LAST`;
+  const rows = await getDb()`SELECT * FROM goals ORDER BY status ASC, target_date ASC NULLS LAST`;
   return rows as Goal[];
 }
 
@@ -24,7 +24,7 @@ export async function createGoal(data: {
   description?: string;
   target_date?: string;
 }) {
-  await sql`
+  await getDb()`
     INSERT INTO goals (title, description, target_date)
     VALUES (${data.title}, ${data.description ?? null}, ${data.target_date ?? null})
   `;
@@ -34,7 +34,7 @@ export async function createGoal(data: {
 
 export async function updateGoalProgress(id: number, progress: number) {
   const status = progress >= 100 ? "completed" : undefined;
-  await sql`
+  await getDb()`
     UPDATE goals SET
       progress = ${progress},
       status = COALESCE(${status ?? null}, status),
@@ -46,7 +46,7 @@ export async function updateGoalProgress(id: number, progress: number) {
 }
 
 export async function deleteGoal(id: number) {
-  await sql`DELETE FROM goals WHERE id = ${id}`;
+  await getDb()`DELETE FROM goals WHERE id = ${id}`;
   revalidatePath("/goals");
   revalidatePath("/");
 }

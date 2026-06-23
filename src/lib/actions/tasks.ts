@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import sql from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export type Task = {
   id: number;
@@ -15,7 +15,7 @@ export type Task = {
 };
 
 export async function getTasks(): Promise<Task[]> {
-  const rows = await sql`
+  const rows = await getDb()`
     SELECT * FROM tasks ORDER BY completed ASC, priority DESC, created_at DESC
   `;
   return rows as Task[];
@@ -27,7 +27,7 @@ export async function createTask(data: {
   priority?: string;
   due_date?: string;
 }) {
-  await sql`
+  await getDb()`
     INSERT INTO tasks (title, description, priority, due_date)
     VALUES (${data.title}, ${data.description ?? null}, ${data.priority ?? "medium"}, ${data.due_date ?? null})
   `;
@@ -36,7 +36,7 @@ export async function createTask(data: {
 }
 
 export async function toggleTask(id: number) {
-  await sql`
+  await getDb()`
     UPDATE tasks SET completed = NOT completed, updated_at = now() WHERE id = ${id}
   `;
   revalidatePath("/tasks");
@@ -44,7 +44,7 @@ export async function toggleTask(id: number) {
 }
 
 export async function deleteTask(id: number) {
-  await sql`DELETE FROM tasks WHERE id = ${id}`;
+  await getDb()`DELETE FROM tasks WHERE id = ${id}`;
   revalidatePath("/tasks");
   revalidatePath("/");
 }
