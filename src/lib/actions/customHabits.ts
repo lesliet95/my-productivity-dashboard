@@ -5,10 +5,24 @@ import { getData, setData } from "./userData";
 import type { CustomHabit, HabitData, HabitLog } from "@/lib/types/habits";
 
 const KEY = "habit_tracker";
-const FALLBACK: HabitData = { habits: [], logs: [] };
+const FALLBACK: HabitData = {
+  habits: [],
+  logs: [],
+  sectionNames: { daily: "Daily", devotional: "Devotional" },
+};
 
 export async function getHabitData(): Promise<HabitData> {
-  return getData<HabitData>(KEY, FALLBACK);
+  const data = await getData<HabitData>(KEY, FALLBACK);
+  // backfill for existing data that predates sectionNames
+  if (!data.sectionNames) {
+    return { ...data, sectionNames: { daily: "Daily", devotional: "Devotional" } };
+  }
+  return data;
+}
+
+export async function saveSectionNames(names: { daily: string; devotional: string }): Promise<void> {
+  const current = await getHabitData();
+  await setData(KEY, { ...current, sectionNames: names }, "/habits/tracker");
 }
 
 export async function saveHabits(habits: CustomHabit[]): Promise<void> {

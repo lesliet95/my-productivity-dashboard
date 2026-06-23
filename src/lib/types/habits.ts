@@ -19,4 +19,8 @@ export interface HabitLog {
 export interface HabitData {
   habits: CustomHabit[];
   logs: HabitLog[];
+  sectionNames: {
+    daily: string;
+    devotional: string;
+  };
 }

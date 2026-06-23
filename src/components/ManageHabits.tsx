@@ -36,11 +36,15 @@ const DEFAULT_HABIT: Omit<CustomHabit, "id" | "order"> = {
 
 export default function ManageHabits({
   habits,
+  sectionNames,
   onSave,
+  onSaveSectionNames,
   onClose,
 }: {
   habits: CustomHabit[];
+  sectionNames: { daily: string; devotional: string };
   onSave: (habits: CustomHabit[]) => void;
+  onSaveSectionNames: (names: { daily: string; devotional: string }) => void;
   onClose: () => void;
 }) {
   const [list, setList] = useState<CustomHabit[]>(
@@ -48,10 +52,13 @@ export default function ManageHabits({
   );
   const [editing, setEditing] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [secDaily, setSecDaily] = useState(sectionNames.daily);
+  const [secDevotional, setSecDevotional] = useState(sectionNames.devotional);
 
   function handleSave() {
     const reordered = list.map((h, i) => ({ ...h, order: i }));
     onSave(reordered);
+    onSaveSectionNames({ daily: secDaily.trim() || "Daily", devotional: secDevotional.trim() || "Devotional" });
     onClose();
   }
 
@@ -102,14 +109,37 @@ export default function ManageHabits({
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+          {/* Section name editors */}
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Section Names</p>
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="text-xs text-gray-500 mb-1 block">Section 1</label>
+                <input
+                  value={secDaily}
+                  onChange={(e) => setSecDaily(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-xs text-gray-500 mb-1 block">Section 2</label>
+                <input
+                  value={secDevotional}
+                  onChange={(e) => setSecDevotional(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                />
+              </div>
+            </div>
+          </div>
+
           {[
-            { title: "Daily", items: daily },
-            { title: "Devotional", items: devotional },
-          ].map(({ title, items }) => (
-            <div key={title}>
+            { key: "daily" as const, title: secDaily, items: daily },
+            { key: "devotional" as const, title: secDevotional, items: devotional },
+          ].map(({ key, title, items }) => (
+            <div key={key}>
               <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{title}</h3>
               {items.length === 0 ? (
-                <p className="text-sm text-gray-400 italic py-2">No {title.toLowerCase()} habits yet.</p>
+                <p className="text-sm text-gray-400 italic py-2">No habits in this section yet.</p>
               ) : (
                 <div className="space-y-2">
                   {items.map((habit) => (

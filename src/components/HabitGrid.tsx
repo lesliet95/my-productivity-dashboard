@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useCallback } from "react";
-import { toggleLog, saveHabits } from "@/lib/actions/customHabits";
+import { toggleLog, saveHabits, saveSectionNames } from "@/lib/actions/customHabits";
 import type { CustomHabit, HabitData, HabitLog } from "@/lib/types/habits";
 import { Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -92,6 +92,14 @@ export default function HabitGrid({ initialData }: { initialData: HabitData }) {
     []
   );
 
+  const handleSaveSectionNames = useCallback(
+    (names: { daily: string; devotional: string }) => {
+      setData((prev) => ({ ...prev, sectionNames: names }));
+      startTransition(() => saveSectionNames(names));
+    },
+    []
+  );
+
   const daily = data.habits
     .filter((h) => h.section === "daily")
     .sort((a, b) => a.order - b.order);
@@ -177,10 +185,9 @@ export default function HabitGrid({ initialData }: { initialData: HabitData }) {
               ))}
             </div>
 
-            {/* Daily section */}
             {daily.length > 0 && (
               <HabitSection
-                title="Daily"
+                title={data.sectionNames?.daily ?? "Daily"}
                 habits={daily}
                 logs={data.logs}
                 dates={dates}
@@ -188,10 +195,9 @@ export default function HabitGrid({ initialData }: { initialData: HabitData }) {
               />
             )}
 
-            {/* Devotional section */}
             {devotional.length > 0 && (
               <HabitSection
-                title="Devotional"
+                title={data.sectionNames?.devotional ?? "Devotional"}
                 habits={devotional}
                 logs={data.logs}
                 dates={dates}
@@ -218,7 +224,9 @@ export default function HabitGrid({ initialData }: { initialData: HabitData }) {
       {showManage && (
         <ManageHabits
           habits={data.habits}
+          sectionNames={data.sectionNames ?? { daily: "Daily", devotional: "Devotional" }}
           onSave={handleSaveHabits}
+          onSaveSectionNames={handleSaveSectionNames}
           onClose={() => setShowManage(false)}
         />
       )}
