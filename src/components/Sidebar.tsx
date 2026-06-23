@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CheckSquare, Zap, FileText, Target, LayoutDashboard } from "lucide-react";
+import { CheckSquare, Zap, FileText, Target, LayoutDashboard, Share2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -11,6 +11,7 @@ const links = [
   { href: "/habits", label: "Habits", icon: Zap },
   { href: "/notes", label: "Notes", icon: FileText },
   { href: "/goals", label: "Goals", icon: Target },
+  { href: "/social", label: "Social Media", icon: Share2 },
 ];
 
 export default function Sidebar() {
