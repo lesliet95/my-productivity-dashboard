@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CheckSquare, Zap, FileText, Target, LayoutDashboard, Share2, LayoutGrid } from "lucide-react";
+import { CheckSquare, FileText, Target, LayoutDashboard, Share2, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
-  { href: "/habits/tracker", label: "Habit Tracker", icon: LayoutGrid },
-  { href: "/habits", label: "Habits (simple)", icon: Zap },
+  { href: "/habits/tracker", label: "Habits", icon: LayoutGrid },
   { href: "/notes", label: "Notes", icon: FileText },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/social", label: "Social Media", icon: Share2 },
