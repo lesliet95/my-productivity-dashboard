@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CheckSquare, FileText, Target, LayoutDashboard, Share2, LayoutGrid, TrendingUp, ListChecks } from "lucide-react";
+import { CheckSquare, FileText, Target, LayoutDashboard, Share2, LayoutGrid, TrendingUp, ListChecks, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/week", label: "Week View", icon: CalendarDays },
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/habits/tracker", label: "Habits", icon: LayoutGrid },
   { href: "/notes", label: "Notes", icon: FileText },
