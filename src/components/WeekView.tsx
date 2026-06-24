@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useTransition, useRef, useCallback, useEffect } from "react";
-import { saveWeekData, type WeekData, type WeekTask, type WeekGoal } from "@/lib/actions/weekView";
-import { ChevronLeft, ChevronRight, Plus, Trash2, BookOpen, Sparkles } from "lucide-react";
+import { saveWeekData, type WeekData, type WeekGoal } from "@/lib/actions/weekView";
+import { toggleTask, createTask, deleteTask, type Task } from "@/lib/actions/tasks";
+import { CATEGORY_STYLES } from "@/lib/taskCategories";
+import { ChevronLeft, ChevronRight, Plus, Trash2, BookOpen, Sparkles, ExternalLink } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 // ── Week key helpers ──────────────────────────────────────────────────────────
@@ -74,28 +77,82 @@ function spawnConfetti(x: number, y: number) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function WeekView({ initialData, initialWeekKey }: { initialData: WeekData; initialWeekKey: string }) {
+export default function WeekView({
+  initialData,
+  initialWeekKey,
+  initialTasks,
+}: {
+  initialData: WeekData;
+  initialWeekKey: string;
+  initialTasks: Task[];
+}) {
   const [offset, setOffset] = useState(0);
   const [weekKey, setWeekKey] = useState(initialWeekKey);
   const [data, setData] = useState(initialData);
+  const [tasks, setTasks] = useState(initialTasks);
   const [loading, setLoading] = useState(false);
   const [, startTransition] = useTransition();
+
+  // Sunday of the week (weekKey is Monday)
+  const weekStart = weekKey;
+  const weekEnd = (() => {
+    const d = new Date(weekKey + "T00:00:00");
+    d.setDate(d.getDate() + 6);
+    return d.toISOString().slice(0, 10);
+  })();
+
+  // Tasks relevant to this week: due within the week, or no due date (current week only)
+  const weekTasks = tasks.filter((t) => {
+    if (t.due_date) {
+      return t.due_date >= weekStart && t.due_date <= weekEnd;
+    }
+    return offset === 0; // show undated tasks only for current week
+  });
 
   async function navigateTo(newOffset: number) {
     setLoading(true);
     const newKey = getMondayOf(newOffset);
     setOffset(newOffset);
     setWeekKey(newKey);
-    // Fetch week data from server
     const res = await fetch(`/api/week?key=${newKey}`);
     const json = await res.json();
     setData(json);
+    setTasks(json.allTasks ?? tasks);
     setLoading(false);
   }
 
   function persist(patch: Partial<WeekData>) {
     setData((prev) => ({ ...prev, ...patch }));
     startTransition(() => saveWeekData(weekKey, patch));
+  }
+
+  function handleToggleTask(id: number, e: React.MouseEvent) {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const task = tasks.find((t) => t.id === id);
+    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, completed: !t.completed } : t));
+    if (task && !task.completed) spawnConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    startTransition(() => toggleTask(id));
+  }
+
+  function handleDeleteTask(id: number) {
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    startTransition(() => deleteTask(id));
+  }
+
+  async function handleAddTask(title: string) {
+    const optimistic: Task = {
+      id: Date.now(),
+      title,
+      description: null,
+      completed: false,
+      priority: "medium",
+      due_date: weekStart, // default to start of current week
+      category: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    setTasks((prev) => [...prev, optimistic]);
+    await createTask({ title, due_date: weekStart });
   }
 
   const label = weekLabel(weekKey, offset);
@@ -132,7 +189,13 @@ export default function WeekView({ initialData, initialWeekKey }: { initialData:
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Left col — takes 2/3 */}
         <div className="lg:col-span-2 space-y-5">
-          <TaskChecklist tasks={data.tasks} onChange={(tasks) => persist({ tasks })} />
+          <TaskChecklist
+            tasks={weekTasks}
+            isCurrentWeek={offset === 0}
+            onToggle={handleToggleTask}
+            onDelete={handleDeleteTask}
+            onAdd={handleAddTask}
+          />
           <WeeklyFocus focus={data.focus} goals={data.goals} onChange={(focus, goals) => persist({ focus, goals })} />
           <Reflections reflection={data.reflection} onChange={(reflection) => persist({ reflection })} />
         </div>
@@ -140,7 +203,7 @@ export default function WeekView({ initialData, initialWeekKey }: { initialData:
         {/* Right col */}
         <div className="space-y-5">
           <CurrentlyReadingWidget reading={data.reading} onChange={(reading) => persist({ reading })} />
-          <WeekStats tasks={data.tasks} goals={data.goals} />
+          <WeekStats tasks={weekTasks} goals={data.goals} />
         </div>
       </div>
     </div>
@@ -149,33 +212,25 @@ export default function WeekView({ initialData, initialWeekKey }: { initialData:
 
 // ── TaskChecklist ─────────────────────────────────────────────────────────────
 
-function TaskChecklist({ tasks, onChange }: { tasks: WeekTask[]; onChange: (tasks: WeekTask[]) => void }) {
+function TaskChecklist({
+  tasks,
+  isCurrentWeek,
+  onToggle,
+  onDelete,
+  onAdd,
+}: {
+  tasks: Task[];
+  isCurrentWeek: boolean;
+  onToggle: (id: number, e: React.MouseEvent) => void;
+  onDelete: (id: number) => void;
+  onAdd: (title: string) => void;
+}) {
   const [input, setInput] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  function addTask() {
+  function handleAdd() {
     if (!input.trim()) return;
-    const next = [...tasks, { id: crypto.randomUUID(), text: input.trim(), completed: false }];
-    onChange(next);
+    onAdd(input.trim());
     setInput("");
-  }
-
-  function toggleTask(id: string, e: React.MouseEvent) {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const next = tasks.map((t) =>
-      t.id === id
-        ? { ...t, completed: !t.completed, completedAt: !t.completed ? new Date().toISOString() : undefined }
-        : t
-    );
-    onChange(next);
-    const task = tasks.find((t) => t.id === id);
-    if (task && !task.completed) spawnConfetti(cx, cy);
-  }
-
-  function deleteTask(id: string) {
-    onChange(tasks.filter((t) => t.id !== id));
   }
 
   const done = tasks.filter((t) => t.completed).length;
@@ -184,63 +239,78 @@ function TaskChecklist({ tasks, onChange }: { tasks: WeekTask[]; onChange: (task
     <div className="bg-white border border-gray-200 rounded-xl p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-gray-900">This Week's Tasks</h3>
-        {tasks.length > 0 && (
-          <span className="text-xs text-gray-400">{done}/{tasks.length} done</span>
-        )}
+        <div className="flex items-center gap-3">
+          {tasks.length > 0 && (
+            <span className="text-xs text-gray-400">{done}/{tasks.length} done</span>
+          )}
+          <Link href="/tasks" className="flex items-center gap-1 text-xs text-indigo-600 hover:underline">
+            All tasks <ExternalLink size={11} />
+          </Link>
+        </div>
       </div>
 
-      {/* Add input */}
-      <div className="flex gap-2 mb-4">
-        <input
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && addTask()}
-          placeholder="Add a task for this week…"
-          className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        />
-        <button
-          onClick={addTask}
-          disabled={!input.trim()}
-          className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 transition-colors"
-        >
-          <Plus size={16} />
-        </button>
-      </div>
+      {isCurrentWeek && (
+        <div className="flex gap-2 mb-4">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            placeholder="Quick add a task…"
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          />
+          <button
+            onClick={handleAdd}
+            disabled={!input.trim()}
+            className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+      )}
 
       {tasks.length === 0 ? (
-        <p className="text-sm text-gray-400 text-center py-4">No tasks yet — add one above</p>
+        <p className="text-sm text-gray-400 text-center py-4">
+          {isCurrentWeek ? "No tasks due this week — add one above or go to Tasks to set due dates." : "No tasks were due this week."}
+        </p>
       ) : (
         <ul className="space-y-1.5">
           {tasks
             .slice()
             .sort((a, b) => (a.completed === b.completed ? 0 : a.completed ? 1 : -1))
-            .map((task) => (
-              <li key={task.id} className="flex items-center gap-3 group py-1">
-                <button
-                  onClick={(e) => toggleTask(task.id, e)}
-                  className={cn(
-                    "w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all",
-                    task.completed ? "bg-indigo-500 border-indigo-500 scale-110" : "border-gray-300 hover:border-indigo-400"
+            .map((task) => {
+              const catStyle = task.category ? CATEGORY_STYLES[task.category] : null;
+              return (
+                <li key={task.id} className="flex items-center gap-3 group py-1">
+                  <button
+                    onClick={(e) => onToggle(task.id, e)}
+                    className={cn(
+                      "w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all",
+                      task.completed ? "bg-indigo-500 border-indigo-500 scale-110" : "border-gray-300 hover:border-indigo-400"
+                    )}
+                  >
+                    {task.completed && (
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                  <span className={cn("flex-1 text-sm", task.completed && "line-through text-gray-400")}>
+                    {task.title}
+                  </span>
+                  {catStyle && task.category && (
+                    <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium shrink-0 hidden sm:block", catStyle.pill)}>
+                      {task.category}
+                    </span>
                   )}
-                >
-                  {task.completed && (
-                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </button>
-                <span className={cn("flex-1 text-sm", task.completed && "line-through text-gray-400")}>
-                  {task.text}
-                </span>
-                <button
-                  onClick={() => deleteTask(task.id)}
-                  className="text-gray-200 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
-                >
-                  <Trash2 size={13} />
-                </button>
-              </li>
-            ))}
+                  <button
+                    onClick={() => onDelete(task.id)}
+                    className="text-gray-200 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </li>
+              );
+            })}
         </ul>
       )}
     </div>
@@ -430,7 +500,7 @@ function CurrentlyReadingWidget({ reading, onChange }: {
 
 // ── WeekStats ─────────────────────────────────────────────────────────────────
 
-function WeekStats({ tasks, goals }: { tasks: WeekTask[]; goals: WeekGoal[] }) {
+function WeekStats({ tasks, goals }: { tasks: Task[]; goals: WeekGoal[] }) {
   const taskDone = tasks.filter((t) => t.completed).length;
   const goalDone = goals.filter((g) => g.completed).length;
   const totalItems = tasks.length + goals.length;

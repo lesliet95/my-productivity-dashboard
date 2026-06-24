@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { getWeekData } from "@/lib/actions/weekView";
+import { getTasks } from "@/lib/actions/tasks";
 import WeekView from "@/components/WeekView";
 
 function getMondayKey(): string {
@@ -12,7 +13,7 @@ function getMondayKey(): string {
 
 export default async function WeekPage() {
   const weekKey = getMondayKey();
-  const data = await getWeekData(weekKey);
+  const [data, tasks] = await Promise.all([getWeekData(weekKey), getTasks()]);
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -20,7 +21,7 @@ export default async function WeekPage() {
         <h1 className="text-2xl font-bold text-gray-900">Week View</h1>
         <p className="text-sm text-gray-500 mt-1">Your weekly command center</p>
       </div>
-      <WeekView initialData={data} initialWeekKey={weekKey} />
+      <WeekView initialData={data} initialWeekKey={weekKey} initialTasks={tasks} />
     </div>
   );
 }
