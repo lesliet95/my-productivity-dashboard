@@ -20,12 +20,12 @@ export type Task = {
 
 export async function getTasks(): Promise<Task[]> {
   const rows = await getDb()`
-    SELECT * FROM tasks ORDER BY completed ASC, priority DESC, created_at DESC
+    SELECT id, title, description, completed, priority, category,
+           TO_CHAR(due_date, 'YYYY-MM-DD') AS due_date,
+           created_at, updated_at
+    FROM tasks ORDER BY completed ASC, priority DESC, created_at DESC
   `;
-  return rows.map((r) => ({
-    ...r,
-    due_date: r.due_date ? String(r.due_date).slice(0, 10) : null,
-  })) as Task[];
+  return rows as Task[];
 }
 
 export async function createTask(data: {
