@@ -6,7 +6,7 @@ import { calcPnL } from "@/lib/tradingUtils";
 import { Plus, Trash2, Pencil, X, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const STRATEGIES = ["Breakout", "Pullback", "Earnings", "Trend", "Reversal", "Scalp", "Swing", "News", "Other"];
+const STRATEGIES = ["Breakout", "Pullback", "Earnings", "Trend", "Reversal", "Scalp", "Swing", "News", "OpenInsider", "Other"];
 
 function fmt(n: number) {
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
