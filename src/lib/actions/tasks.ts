@@ -22,7 +22,10 @@ export async function getTasks(): Promise<Task[]> {
   const rows = await getDb()`
     SELECT * FROM tasks ORDER BY completed ASC, priority DESC, created_at DESC
   `;
-  return rows as Task[];
+  return rows.map((r) => ({
+    ...r,
+    due_date: r.due_date ? String(r.due_date).slice(0, 10) : null,
+  })) as Task[];
 }
 
 export async function createTask(data: {
@@ -37,6 +40,7 @@ export async function createTask(data: {
     VALUES (${data.title}, ${data.description ?? null}, ${data.priority ?? "medium"}, ${data.due_date ?? null}, ${data.category ?? null})
   `;
   revalidatePath("/tasks");
+  revalidatePath("/week");
   revalidatePath("/");
 }
 
@@ -45,11 +49,13 @@ export async function toggleTask(id: number) {
     UPDATE tasks SET completed = NOT completed, updated_at = now() WHERE id = ${id}
   `;
   revalidatePath("/tasks");
+  revalidatePath("/week");
   revalidatePath("/");
 }
 
 export async function deleteTask(id: number) {
   await getDb()`DELETE FROM tasks WHERE id = ${id}`;
   revalidatePath("/tasks");
+  revalidatePath("/week");
   revalidatePath("/");
 }
