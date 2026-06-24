@@ -5,9 +5,13 @@ CREATE TABLE IF NOT EXISTS tasks (
   completed BOOLEAN NOT NULL DEFAULT false,
   priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
   due_date DATE,
+  category TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Incremental: add category if upgrading from older schema
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS category TEXT;
 
 CREATE TABLE IF NOT EXISTS habits (
   id SERIAL PRIMARY KEY,

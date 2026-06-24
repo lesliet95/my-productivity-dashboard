@@ -1,26 +1,38 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { toggleTask, deleteTask, createTask, type Task } from "@/lib/actions/tasks";
+import { toggleTask, deleteTask, createTask, type Task, type TaskCategory } from "@/lib/actions/tasks";
+import { TASK_CATEGORIES, CATEGORY_STYLES } from "@/lib/taskCategories";
 import { Trash2, Plus, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+type StatusFilter = "all" | "pending" | "completed";
+
 export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
   const [tasks, setTasks] = useState(initialTasks);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [showForm, setShowForm] = useState(false);
-  const [filter, setFilter] = useState<"all" | "pending" | "completed">("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [categoryFilter, setCategoryFilter] = useState<TaskCategory | "all">("all");
 
-  const filtered = tasks.filter((t) => {
-    if (filter === "pending") return !t.completed;
-    if (filter === "completed") return t.completed;
-    return true;
-  });
+  const filtered = tasks
+    .filter((t) => {
+      if (statusFilter === "pending") return !t.completed;
+      if (statusFilter === "completed") return t.completed;
+      return true;
+    })
+    .filter((t) => {
+      if (categoryFilter === "all") return true;
+      return t.category === categoryFilter;
+    })
+    .sort((a, b) => {
+      if (a.completed !== b.completed) return a.completed ? 1 : -1;
+      const pMap = { high: 0, medium: 1, low: 2 };
+      return (pMap[a.priority] ?? 1) - (pMap[b.priority] ?? 1);
+    });
 
   function handleToggle(id: number) {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
-    );
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)));
     startTransition(() => toggleTask(id));
   }
 
@@ -31,15 +43,16 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      {/* Status filter */}
+      <div className="flex items-center justify-between mb-3">
         <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
-          {(["all", "pending", "completed"] as const).map((f) => (
+          {(["all", "pending", "completed"] as StatusFilter[]).map((f) => (
             <button
               key={f}
-              onClick={() => setFilter(f)}
+              onClick={() => setStatusFilter(f)}
               className={cn(
                 "px-3 py-1.5 rounded-md text-sm font-medium transition-colors capitalize",
-                filter === f ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"
+                statusFilter === f ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"
               )}
             >
               {f}
@@ -55,6 +68,33 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
         </button>
       </div>
 
+      {/* Category filter */}
+      <div className="flex gap-1.5 flex-wrap mb-5">
+        <button
+          onClick={() => setCategoryFilter("all")}
+          className={cn(
+            "px-3 py-1 rounded-full text-xs font-medium transition-colors",
+            categoryFilter === "all" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          )}
+        >
+          All
+        </button>
+        {TASK_CATEGORIES.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setCategoryFilter(categoryFilter === cat ? "all" : cat)}
+            className={cn(
+              "px-3 py-1 rounded-full text-xs font-medium transition-colors",
+              categoryFilter === cat
+                ? "bg-gray-900 text-white"
+                : cn(CATEGORY_STYLES[cat].pill, "hover:opacity-80")
+            )}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
       {showForm && (
         <AddTaskForm
           onClose={() => setShowForm(false)}
@@ -67,61 +107,33 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
 
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
-          <p className="text-lg">No {filter === "all" ? "" : filter} tasks</p>
+          <p className="text-lg">No tasks found</p>
           <p className="text-sm mt-1">
-            {filter === "completed" ? "Complete some tasks to see them here." : 'Click "Add Task" to get started.'}
+            {tasks.length === 0 ? 'Click "Add Task" to get started.' : "Try a different filter."}
           </p>
         </div>
       ) : (
         <ul className="space-y-2">
-          {filtered
-            .sort((a, b) => {
-              if (a.completed !== b.completed) return a.completed ? 1 : -1;
-              const pMap = { high: 0, medium: 1, low: 2 };
-              return (pMap[a.priority] ?? 1) - (pMap[b.priority] ?? 1);
-            })
-            .map((task) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onToggle={handleToggle}
-                onDelete={handleDelete}
-              />
-            ))}
+          {filtered.map((task) => (
+            <TaskItem key={task.id} task={task} onToggle={handleToggle} onDelete={handleDelete} />
+          ))}
         </ul>
       )}
     </div>
   );
 }
 
-function TaskItem({
-  task,
-  onToggle,
-  onDelete,
-}: {
-  task: Task;
-  onToggle: (id: number) => void;
-  onDelete: (id: number) => void;
-}) {
+function TaskItem({ task, onToggle, onDelete }: { task: Task; onToggle: (id: number) => void; onDelete: (id: number) => void }) {
   const [expanded, setExpanded] = useState(false);
-  const isOverdue =
-    !task.completed &&
-    task.due_date &&
-    new Date(task.due_date) < new Date(new Date().toDateString());
+  const isOverdue = !task.completed && task.due_date && new Date(task.due_date) < new Date(new Date().toDateString());
 
-  const priorityColors: Record<string, string> = {
-    high: "border-l-red-400",
-    medium: "border-l-yellow-400",
-    low: "border-l-gray-300",
-  };
+  const categoryStyle = task.category ? CATEGORY_STYLES[task.category] : null;
 
   return (
-    <li
-      className={cn(
-        "bg-white border border-gray-200 rounded-lg border-l-4 transition-all",
-        priorityColors[task.priority] ?? "border-l-gray-300"
-      )}
-    >
+    <li className={cn(
+      "bg-white border border-gray-200 rounded-lg border-l-4 transition-all",
+      categoryStyle ? categoryStyle.border : task.priority === "high" ? "border-l-red-400" : task.priority === "medium" ? "border-l-yellow-400" : "border-l-gray-300"
+    )}>
       <div className="flex items-center gap-3 p-4">
         <input
           type="checkbox"
@@ -139,14 +151,17 @@ function TaskItem({
             </span>
           )}
         </div>
-        <span
-          className={cn(
-            "text-xs px-2 py-0.5 rounded-full font-medium capitalize shrink-0",
-            task.priority === "high" && "bg-red-100 text-red-600",
-            task.priority === "medium" && "bg-yellow-100 text-yellow-600",
-            task.priority === "low" && "bg-gray-100 text-gray-500"
-          )}
-        >
+        {task.category && (
+          <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium shrink-0", CATEGORY_STYLES[task.category].pill)}>
+            {task.category}
+          </span>
+        )}
+        <span className={cn(
+          "text-xs px-2 py-0.5 rounded-full font-medium capitalize shrink-0",
+          task.priority === "high" && "bg-red-100 text-red-600",
+          task.priority === "medium" && "bg-yellow-100 text-yellow-600",
+          task.priority === "low" && "bg-gray-100 text-gray-500"
+        )}>
           {task.priority}
         </span>
         {task.description && (
@@ -154,10 +169,7 @@ function TaskItem({
             <ChevronDown size={16} className={cn("transition-transform", expanded && "rotate-180")} />
           </button>
         )}
-        <button
-          onClick={() => onDelete(task.id)}
-          className="text-gray-300 hover:text-red-400 transition-colors"
-        >
+        <button onClick={() => onDelete(task.id)} className="text-gray-300 hover:text-red-400 transition-colors">
           <Trash2 size={15} />
         </button>
       </div>
@@ -170,24 +182,25 @@ function TaskItem({
   );
 }
 
-function AddTaskForm({
-  onClose,
-  onAdd,
-}: {
-  onClose: () => void;
-  onAdd: (task: Task) => void;
-}) {
+function AddTaskForm({ onClose, onAdd }: { onClose: () => void; onAdd: (task: Task) => void }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("medium");
   const [dueDate, setDueDate] = useState("");
+  const [category, setCategory] = useState<TaskCategory | "">("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
     setLoading(true);
-    await createTask({ title: title.trim(), description: description.trim() || undefined, priority, due_date: dueDate || undefined });
+    await createTask({
+      title: title.trim(),
+      description: description.trim() || undefined,
+      priority,
+      due_date: dueDate || undefined,
+      category: category || undefined,
+    });
     const optimistic: Task = {
       id: Date.now(),
       title: title.trim(),
@@ -195,6 +208,7 @@ function AddTaskForm({
       completed: false,
       priority: priority as Task["priority"],
       due_date: dueDate || null,
+      category: (category || null) as Task["category"],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -217,8 +231,41 @@ function AddTaskForm({
         onChange={(e) => setDescription(e.target.value)}
         placeholder="Description (optional)"
         rows={2}
-        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
       />
+
+      {/* Category picker */}
+      <div className="mb-3">
+        <p className="text-xs text-gray-500 mb-1.5">Category</p>
+        <div className="flex gap-1.5 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setCategory("")}
+            className={cn(
+              "px-3 py-1 rounded-full text-xs font-medium transition-colors",
+              category === "" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            )}
+          >
+            None
+          </button>
+          {TASK_CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setCategory(cat)}
+              className={cn(
+                "px-3 py-1 rounded-full text-xs font-medium transition-all",
+                category === cat
+                  ? cn(CATEGORY_STYLES[cat].pill, "ring-2 ring-offset-1 ring-current")
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              )}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="flex gap-2 mb-3">
         <select
           value={priority}

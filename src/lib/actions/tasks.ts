@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
+import type { TaskCategory } from "@/lib/taskCategories";
+
+export type { TaskCategory };
 
 export type Task = {
   id: number;
@@ -10,6 +13,7 @@ export type Task = {
   completed: boolean;
   priority: "low" | "medium" | "high";
   due_date: string | null;
+  category: TaskCategory | null;
   created_at: string;
   updated_at: string;
 };
@@ -26,10 +30,11 @@ export async function createTask(data: {
   description?: string;
   priority?: string;
   due_date?: string;
+  category?: string;
 }) {
   await getDb()`
-    INSERT INTO tasks (title, description, priority, due_date)
-    VALUES (${data.title}, ${data.description ?? null}, ${data.priority ?? "medium"}, ${data.due_date ?? null})
+    INSERT INTO tasks (title, description, priority, due_date, category)
+    VALUES (${data.title}, ${data.description ?? null}, ${data.priority ?? "medium"}, ${data.due_date ?? null}, ${data.category ?? null})
   `;
   revalidatePath("/tasks");
   revalidatePath("/");
