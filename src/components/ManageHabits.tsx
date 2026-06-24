@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const EMOJI_OPTIONS = [
   "💧","🏃","📖","🧘","💪","🥗","😴","✍️","🎯","🙏","📿","⭐","🌿","🎵","💊",
   "🧹","💰","📱","🖥️","🤝","❤️","🧠","🌅","🚴","🏊","🍎","☕","📝","🎨","🌙",
+  "⛸️","🏋️","🧗","🤸","🏄","🎾","⚽","🏀","🎸","🌸","🦋","🌊","🏔️","🎭","🧩",
 ];
 
 const COLOR_OPTIONS = [
@@ -38,13 +39,11 @@ export default function ManageHabits({
   habits,
   sectionNames,
   onSave,
-  onSaveSectionNames,
   onClose,
 }: {
   habits: CustomHabit[];
   sectionNames: { daily: string; devotional: string };
-  onSave: (habits: CustomHabit[]) => void;
-  onSaveSectionNames: (names: { daily: string; devotional: string }) => void;
+  onSave: (habits: CustomHabit[], sectionNames: { daily: string; devotional: string }) => void;
   onClose: () => void;
 }) {
   const [list, setList] = useState<CustomHabit[]>(
@@ -57,8 +56,7 @@ export default function ManageHabits({
 
   function handleSave() {
     const reordered = list.map((h, i) => ({ ...h, order: i }));
-    onSave(reordered);
-    onSaveSectionNames({ daily: secDaily.trim() || "Daily", devotional: secDevotional.trim() || "Devotional" });
+    onSave(reordered, { daily: secDaily.trim() || "Daily", devotional: secDevotional.trim() || "Devotional" });
     onClose();
   }
 

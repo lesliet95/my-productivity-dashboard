@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useCallback } from "react";
-import { toggleLog, saveHabits, saveSectionNames } from "@/lib/actions/customHabits";
+import { toggleLog, saveManageData } from "@/lib/actions/customHabits";
 import type { CustomHabit, HabitData, HabitLog } from "@/lib/types/habits";
 import { Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -84,18 +84,10 @@ export default function HabitGrid({ initialData }: { initialData: HabitData }) {
     []
   );
 
-  const handleSaveHabits = useCallback(
-    (habits: CustomHabit[]) => {
-      setData((prev) => ({ ...prev, habits }));
-      startTransition(() => saveHabits(habits));
-    },
-    []
-  );
-
-  const handleSaveSectionNames = useCallback(
-    (names: { daily: string; devotional: string }) => {
-      setData((prev) => ({ ...prev, sectionNames: names }));
-      startTransition(() => saveSectionNames(names));
+  const handleSaveManage = useCallback(
+    (habits: CustomHabit[], sectionNames: { daily: string; devotional: string }) => {
+      setData((prev) => ({ ...prev, habits, sectionNames }));
+      startTransition(() => saveManageData(habits, sectionNames));
     },
     []
   );
@@ -225,8 +217,7 @@ export default function HabitGrid({ initialData }: { initialData: HabitData }) {
         <ManageHabits
           habits={data.habits}
           sectionNames={data.sectionNames ?? { daily: "Daily", devotional: "Devotional" }}
-          onSave={handleSaveHabits}
-          onSaveSectionNames={handleSaveSectionNames}
+          onSave={handleSaveManage}
           onClose={() => setShowManage(false)}
         />
       )}

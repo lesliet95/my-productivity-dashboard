@@ -20,14 +20,12 @@ export async function getHabitData(): Promise<HabitData> {
   return data;
 }
 
-export async function saveSectionNames(names: { daily: string; devotional: string }): Promise<void> {
+export async function saveManageData(
+  habits: CustomHabit[],
+  sectionNames: { daily: string; devotional: string }
+): Promise<void> {
   const current = await getHabitData();
-  await setData(KEY, { ...current, sectionNames: names }, "/habits/tracker");
-}
-
-export async function saveHabits(habits: CustomHabit[]): Promise<void> {
-  const current = await getHabitData();
-  await setData(KEY, { ...current, habits }, "/habits/tracker");
+  await setData(KEY, { ...current, habits, sectionNames }, "/habits/tracker");
 }
 
 export async function toggleLog(habitId: string, date: string): Promise<void> {
