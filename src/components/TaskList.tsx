@@ -194,13 +194,19 @@ function AddTaskForm({ onClose, onAdd }: { onClose: () => void; onAdd: (task: Ta
     e.preventDefault();
     if (!title.trim()) return;
     setLoading(true);
-    await createTask({
-      title: title.trim(),
-      description: description.trim() || undefined,
-      priority,
-      due_date: dueDate || undefined,
-      category: category || undefined,
-    });
+    try {
+      await createTask({
+        title: title.trim(),
+        description: description.trim() || undefined,
+        priority,
+        due_date: dueDate || undefined,
+        category: category || undefined,
+      });
+    } catch (err) {
+      console.error("Failed to create task:", err);
+      setLoading(false);
+      return;
+    }
     const optimistic: Task = {
       id: Date.now(),
       title: title.trim(),
