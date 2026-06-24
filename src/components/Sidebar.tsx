@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CheckSquare, FileText, Target, LayoutDashboard, Share2, LayoutGrid } from "lucide-react";
+import { CheckSquare, FileText, Target, LayoutDashboard, Share2, LayoutGrid, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -11,6 +11,7 @@ const links = [
   { href: "/habits/tracker", label: "Habits", icon: LayoutGrid },
   { href: "/notes", label: "Notes", icon: FileText },
   { href: "/goals", label: "Goals", icon: Target },
+  { href: "/trading", label: "Trading Journal", icon: TrendingUp },
   { href: "/social", label: "Social Media", icon: Share2 },
 ];
 
