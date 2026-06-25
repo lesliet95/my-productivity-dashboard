@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CheckSquare, FileText, Target, LayoutDashboard, Share2, LayoutGrid, TrendingUp, ListChecks, CalendarDays } from "lucide-react";
+import { CheckSquare, FileText, Target, LayoutDashboard, Share2, LayoutGrid, TrendingUp, ListChecks, CalendarDays, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -15,6 +15,7 @@ const links = [
   { href: "/trading", label: "Trading Journal", icon: TrendingUp },
   { href: "/bucket-list", label: "Bucket List", icon: ListChecks },
   { href: "/social", label: "Social Media", icon: Share2 },
+  { href: "/cards", label: "Card Benefits", icon: CreditCard },
 ];
 
 export default function Sidebar() {
