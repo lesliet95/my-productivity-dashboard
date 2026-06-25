@@ -1,17 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
-import type { CardBenefitData, BenefitValue } from "@/lib/types/cards";
+import type { CardBenefitData, BenefitValue, BenefitRow } from "@/lib/types/cards";
 import { calcCardMath } from "@/lib/types/cards";
-import { CreditCard } from "lucide-react";
+import { saveCards } from "@/lib/actions/cards";
+import { CreditCard, Pencil, Check } from "lucide-react";
 
-// ── Value display helpers ──────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
 function fmtValue(v: BenefitValue): string {
   if (v === null || v === undefined) return "—";
   if (typeof v === "number") return `$${v.toLocaleString()}`;
-  return v; // already formatted string like "~$400", "TBD", "Soft"
+  return v;
 }
 
 function fmtMath(n: number, prefix = "+"): string {
@@ -25,64 +26,35 @@ function CheckIcon() {
     </svg>
   );
 }
-
-function HourglassIcon() {
-  return <span className="mr-1 text-xs">⏳</span>;
-}
-
+function HourglassIcon() { return <span className="mr-1 text-xs">⏳</span>; }
 function NoteIcon({ icon }: { icon?: "check" | "hourglass" }) {
-  if (icon === "hourglass") return <HourglassIcon />;
-  return <CheckIcon />;
+  return icon === "hourglass" ? <HourglassIcon /> : <CheckIcon />;
 }
 
-// ── Accent palettes per card ───────────────────────────────────────────────────
+// ── Accent palettes ────────────────────────────────────────────────────────────
 
 type Accent = {
-  header: string;
-  feeBadge: string;
-  tagline: string;
-  orgHeader: string;
-  nonOrgHeader: string;
-  orgCell: string;
-  nonOrgCell: string;
-  orgValueText: string;
-  nonOrgValueText: string;
+  header: string; feeBadge: string; tagline: string;
+  orgHeader: string; nonOrgHeader: string;
+  orgCell: string; nonOrgCell: string;
+  orgValueText: string; nonOrgValueText: string;
   footnoteRow: string;
-  mathBorder: string;
-  organicLabel: string;
-  nonOrganicLabel: string;
 };
 
 const ACCENTS: Record<string, Accent> = {
   indigo: {
-    header: "bg-[#1a2340]",
-    feeBadge: "bg-[#c9a84c] text-white",
-    tagline: "text-[#c9a84c]",
-    orgHeader: "bg-[#2d6a4f] text-white",
-    nonOrgHeader: "bg-[#1a3a5c] text-white",
-    orgCell: "bg-[#f0faf4]",
-    nonOrgCell: "bg-[#f0f5ff]",
-    orgValueText: "text-[#1a6b3a] font-bold",
-    nonOrgValueText: "text-[#1a3a7c] font-bold",
+    header: "bg-[#1a2340]", feeBadge: "bg-[#c9a84c] text-white", tagline: "text-[#c9a84c]",
+    orgHeader: "bg-[#2d6a4f] text-white", nonOrgHeader: "bg-[#1a3a5c] text-white",
+    orgCell: "bg-[#f0faf4]", nonOrgCell: "bg-[#f0f5ff]",
+    orgValueText: "text-[#1a6b3a] font-bold", nonOrgValueText: "text-[#1a3a7c] font-bold",
     footnoteRow: "bg-[#1a2340] text-[#c9a84c]",
-    mathBorder: "border-[#c9a84c]",
-    organicLabel: "text-[#2d6a4f]",
-    nonOrganicLabel: "text-[#1a3a5c]",
   },
   amber: {
-    header: "bg-[#1c1a14]",
-    feeBadge: "bg-[#b8860b] text-white",
-    tagline: "text-[#d4a017]",
-    orgHeader: "bg-[#2d6a4f] text-white",
-    nonOrgHeader: "bg-[#5c4a1a] text-white",
-    orgCell: "bg-[#f0faf4]",
-    nonOrgCell: "bg-[#fdf6e3]",
-    orgValueText: "text-[#1a6b3a] font-bold",
-    nonOrgValueText: "text-[#7a5c00] font-bold",
+    header: "bg-[#1c1a14]", feeBadge: "bg-[#b8860b] text-white", tagline: "text-[#d4a017]",
+    orgHeader: "bg-[#2d6a4f] text-white", nonOrgHeader: "bg-[#5c4a1a] text-white",
+    orgCell: "bg-[#f0faf4]", nonOrgCell: "bg-[#fdf6e3]",
+    orgValueText: "text-[#1a6b3a] font-bold", nonOrgValueText: "text-[#7a5c00] font-bold",
     footnoteRow: "bg-[#1c1a14] text-[#d4a017]",
-    mathBorder: "border-[#d4a017]",
-    organicLabel: "text-[#2d6a4f]",
-    nonOrganicLabel: "text-[#5c4a1a]",
   },
 };
 
@@ -90,18 +62,104 @@ function getAccent(color?: string): Accent {
   return ACCENTS[color ?? "indigo"] ?? ACCENTS.indigo;
 }
 
+// ── Inline editable cell ───────────────────────────────────────────────────────
+
+function EditableCell({
+  value,
+  onChange,
+  className,
+  placeholder = "—",
+  multiline = false,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  className?: string;
+  placeholder?: string;
+  multiline?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const ref = useRef<HTMLTextAreaElement & HTMLInputElement>(null);
+
+  function commit() {
+    onChange(draft);
+    setEditing(false);
+  }
+
+  if (editing) {
+    const shared = {
+      ref,
+      autoFocus: true,
+      value: draft,
+      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft(e.target.value),
+      onBlur: commit,
+      onKeyDown: (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" && !multiline) { e.preventDefault(); commit(); }
+        if (e.key === "Escape") { setDraft(value); setEditing(false); }
+      },
+      className: cn("w-full bg-white border border-indigo-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none", className),
+      placeholder,
+    };
+    return multiline
+      ? <textarea {...shared as React.TextareaHTMLAttributes<HTMLTextAreaElement>} rows={2} />
+      : <input {...shared as React.InputHTMLAttributes<HTMLInputElement>} />;
+  }
+
+  return (
+    <span
+      onClick={() => { setDraft(value); setEditing(true); }}
+      className={cn("group/edit cursor-pointer flex items-start gap-1 min-h-[1.25rem]", className)}
+    >
+      <span className={value ? "" : "text-gray-300 italic"}>{value || placeholder}</span>
+      <Pencil size={10} className="opacity-0 group-hover/edit:opacity-40 shrink-0 mt-0.5 text-gray-500 transition-opacity" />
+    </span>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export default function CardBenefits({ cards }: { cards: CardBenefitData[] }) {
-  const [activeId, setActiveId] = useState(cards[0]?.id ?? "");
-  const card = cards.find((c) => c.id === activeId) ?? cards[0];
+export default function CardBenefits({ cards: initial }: { cards: CardBenefitData[] }) {
+  const [cards, setCards] = useState(initial);
+  const [activeId, setActiveId] = useState(initial[0]?.id ?? "");
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  if (!card) {
-    return <p className="text-gray-400 text-center py-16">No cards configured yet.</p>;
-  }
+  const card = cards.find((c) => c.id === activeId) ?? cards[0];
+  if (!card) return <p className="text-gray-400 text-center py-16">No cards configured yet.</p>;
 
   const accent = getAccent(card.accentColor);
   const math = calcCardMath(card);
+
+  // Debounced save so every keystroke doesn't hit the server
+  const scheduleSave = useCallback((updated: CardBenefitData[]) => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => saveCards(updated), 800);
+  }, []);
+
+  function updateCard(patch: Partial<CardBenefitData>) {
+    const updated = cards.map((c) => c.id === card.id ? { ...c, ...patch } : c);
+    setCards(updated);
+    scheduleSave(updated);
+  }
+
+  function updateRow(rowId: string, patch: Partial<BenefitRow>) {
+    updateCard({
+      benefits: card.benefits.map((r) => r.id === rowId ? { ...r, ...patch } : r),
+    });
+  }
+
+  function updateOrganic(rowId: string, patch: Partial<NonNullable<BenefitRow["organic"]>>) {
+    const row = card.benefits.find((r) => r.id === rowId);
+    if (!row?.organic) return;
+    updateRow(rowId, { organic: { ...row.organic, ...patch } });
+  }
+
+  function updateNonOrganic(rowId: string, patch: Partial<NonNullable<BenefitRow["nonOrganic"]>>) {
+    const row = card.benefits.find((r) => r.id === rowId);
+    if (!row?.nonOrganic) return;
+    updateRow(rowId, { nonOrganic: { ...row.nonOrganic, ...patch } });
+  }
+
+  const usedCount = card.benefits.filter((r) => r.used).length;
 
   return (
     <div className="space-y-5">
@@ -126,6 +184,7 @@ export default function CardBenefits({ cards }: { cards: CardBenefitData[] }) {
 
       {/* Card table */}
       <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+
         {/* Header */}
         <div className={cn("px-5 py-4", accent.header)}>
           <div className="flex items-center justify-between">
@@ -137,14 +196,20 @@ export default function CardBenefits({ cards }: { cards: CardBenefitData[] }) {
                 </p>
               )}
             </div>
-            <span className={cn("px-3 py-1.5 rounded text-sm font-bold", accent.feeBadge)}>
-              Annual Fee: ${card.annualFee.toLocaleString()}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-400">
+                {usedCount}/{card.benefits.length} redeemed
+              </span>
+              <span className={cn("px-3 py-1.5 rounded text-sm font-bold", accent.feeBadge)}>
+                Annual Fee: ${card.annualFee.toLocaleString()}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Column headers */}
-        <div className="grid grid-cols-[2fr_0.7fr_1.4fr_0.6fr_1.4fr_0.6fr] text-xs font-bold tracking-wider">
+        <div className="grid grid-cols-[2rem_2fr_0.7fr_1.4fr_0.6fr_1.4fr_0.6fr] text-xs font-bold tracking-wider">
+          <div className="bg-[#2a3350]" />
           <div className="bg-[#2a3350] text-gray-300 px-4 py-3 uppercase">Benefit</div>
           <div className="bg-[#2a3350] text-gray-300 px-3 py-3 uppercase">Max Value</div>
           <div className={cn("px-4 py-3 uppercase text-white", accent.orgHeader)}>
@@ -163,13 +228,33 @@ export default function CardBenefits({ cards }: { cards: CardBenefitData[] }) {
         <div className="divide-y divide-gray-100">
           {card.benefits.map((row) => (
             <div key={row.id}>
-              <div className="grid grid-cols-[2fr_0.7fr_1.4fr_0.6fr_1.4fr_0.6fr] text-sm items-stretch">
+              <div className={cn(
+                "grid grid-cols-[2rem_2fr_0.7fr_1.4fr_0.6fr_1.4fr_0.6fr] text-sm items-stretch",
+                row.used && "opacity-60"
+              )}>
+
+                {/* Checkbox */}
+                <div className="bg-white flex items-center justify-center">
+                  <button
+                    onClick={() => updateRow(row.id, { used: !row.used })}
+                    className={cn(
+                      "w-4 h-4 rounded border-2 flex items-center justify-center transition-all shrink-0",
+                      row.used
+                        ? "bg-green-500 border-green-500"
+                        : "border-gray-300 hover:border-green-400"
+                    )}
+                    title={row.used ? "Mark unused" : "Mark as used"}
+                  >
+                    {row.used && <Check size={10} className="text-white" strokeWidth={3} />}
+                  </button>
+                </div>
+
                 {/* Benefit name */}
                 <div className="px-4 py-3 bg-white">
-                  <span className="font-semibold text-gray-900">{row.benefit}</span>
-                  {row.subtitle && (
-                    <div className="text-xs text-gray-400 mt-0.5">{row.subtitle}</div>
-                  )}
+                  <span className={cn("font-semibold text-gray-900", row.used && "line-through text-gray-400")}>
+                    {row.benefit}
+                  </span>
+                  {row.subtitle && <div className="text-xs text-gray-400 mt-0.5">{row.subtitle}</div>}
                 </div>
 
                 {/* Max value */}
@@ -180,19 +265,28 @@ export default function CardBenefits({ cards }: { cards: CardBenefitData[] }) {
                 {/* Organic notes */}
                 <div className={cn("px-4 py-3 text-xs text-gray-600 flex items-start", row.organic ? accent.orgCell : "bg-white")}>
                   {row.organic ? (
-                    <span>
+                    <span className="flex items-start gap-0.5 w-full">
                       <NoteIcon icon={row.organic.icon} />
-                      {row.organic.notes}
+                      <EditableCell
+                        value={row.organic.notes}
+                        onChange={(v) => updateOrganic(row.id, { notes: v })}
+                        multiline
+                      />
                     </span>
                   ) : (
-                    <span className="text-gray-300 mx-auto self-center">—</span>
+                    <span className="text-gray-300">—</span>
                   )}
                 </div>
 
                 {/* Organic value */}
-                <div className={cn("px-3 py-3 flex items-center text-sm", row.organic ? accent.orgCell : "bg-white")}>
+                <div className={cn("px-3 py-3 flex items-center", row.organic ? accent.orgCell : "bg-white")}>
                   {row.organic ? (
-                    <span className={accent.orgValueText}>{fmtValue(row.organic.value)}</span>
+                    <EditableCell
+                      value={String(row.organic.value ?? "")}
+                      onChange={(v) => updateOrganic(row.id, { value: v })}
+                      className={cn("text-sm", accent.orgValueText)}
+                      placeholder="TBD"
+                    />
                   ) : (
                     <span className="text-gray-300">—</span>
                   )}
@@ -201,28 +295,36 @@ export default function CardBenefits({ cards }: { cards: CardBenefitData[] }) {
                 {/* Non-organic notes */}
                 <div className={cn("px-4 py-3 text-xs text-gray-600 flex items-start", row.nonOrganic ? accent.nonOrgCell : "bg-white")}>
                   {row.nonOrganic ? (
-                    <span>
+                    <span className="flex items-start gap-0.5 w-full">
                       <NoteIcon icon={row.nonOrganic.icon} />
-                      {row.nonOrganic.notes}
+                      <EditableCell
+                        value={row.nonOrganic.notes}
+                        onChange={(v) => updateNonOrganic(row.id, { notes: v })}
+                        multiline
+                      />
                     </span>
                   ) : (
-                    <span className="text-gray-300 mx-auto self-center">—</span>
+                    <span className="text-gray-300">—</span>
                   )}
                 </div>
 
                 {/* Non-organic value */}
-                <div className={cn("px-3 py-3 flex items-center text-sm", row.nonOrganic ? accent.nonOrgCell : "bg-white")}>
+                <div className={cn("px-3 py-3 flex items-center", row.nonOrganic ? accent.nonOrgCell : "bg-white")}>
                   {row.nonOrganic ? (
-                    <span className={accent.nonOrgValueText}>{fmtValue(row.nonOrganic.value)}</span>
+                    <EditableCell
+                      value={String(row.nonOrganic.value ?? "")}
+                      onChange={(v) => updateNonOrganic(row.id, { value: v })}
+                      className={cn("text-sm", accent.nonOrgValueText)}
+                      placeholder="TBD"
+                    />
                   ) : (
                     <span className="text-gray-300">—</span>
                   )}
                 </div>
               </div>
 
-              {/* Footnote row */}
               {row.footnote && (
-                <div className={cn("px-5 py-1.5 text-xs italic col-span-6", accent.footnoteRow)}>
+                <div className={cn("px-5 py-1.5 text-xs italic", accent.footnoteRow)}>
                   {row.footnote}
                 </div>
               )}
@@ -236,7 +338,7 @@ export default function CardBenefits({ cards }: { cards: CardBenefitData[] }) {
         <h3 className={cn("text-xs font-bold tracking-[0.2em] uppercase mb-5", accent.tagline)}>
           The Math
         </h3>
-        <div className="grid grid-cols-3 gap-4 mb-5">
+        <div className="grid grid-cols-3 gap-4 mb-4">
           <MathCard label="Annual Fee" value={`-$${card.annualFee.toLocaleString()}`} valueColor="text-red-400" />
           <MathCard
             label={<><span className="inline-block w-2 h-2 rounded-full bg-green-400 mr-1.5" />Organic Value</>}
@@ -267,14 +369,8 @@ export default function CardBenefits({ cards }: { cards: CardBenefitData[] }) {
   );
 }
 
-function MathCard({
-  label,
-  value,
-  valueColor,
-}: {
-  label: React.ReactNode;
-  value: string;
-  valueColor: string;
+function MathCard({ label, value, valueColor }: {
+  label: React.ReactNode; value: string; valueColor: string;
 }) {
   return (
     <div className="bg-[#0f1824] rounded-lg p-4">

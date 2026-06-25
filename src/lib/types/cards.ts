@@ -19,7 +19,8 @@ export interface BenefitRow {
   maxValue: BenefitValue;
   organic?: BenefitOrganic;
   nonOrganic?: BenefitNonOrganic;
-  footnote?: string; // renders as a dark calculation row below
+  footnote?: string;
+  used?: boolean; // checked off when benefit has been redeemed
 }
 
 export interface CardBenefitData {
