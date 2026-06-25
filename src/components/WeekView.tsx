@@ -139,20 +139,20 @@ export default function WeekView({
     startTransition(() => deleteTask(id));
   }
 
-  async function handleAddTask(title: string) {
+  async function handleAddTask(title: string, dueDate: string) {
     const optimistic: Task = {
       id: Date.now(),
       title,
       description: null,
       completed: false,
       priority: "medium",
-      due_date: weekStart, // default to start of current week
+      due_date: dueDate,
       category: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
     setTasks((prev) => [...prev, optimistic]);
-    await createTask({ title, due_date: weekStart });
+    await createTask({ title, due_date: dueDate });
   }
 
   const label = weekLabel(weekKey, offset);
@@ -191,6 +191,7 @@ export default function WeekView({
         <div className="lg:col-span-2 space-y-5">
           <TaskChecklist
             tasks={weekTasks}
+            weekKey={weekKey}
             isCurrentWeek={offset === 0}
             onToggle={handleToggleTask}
             onDelete={handleDeleteTask}
@@ -212,36 +213,67 @@ export default function WeekView({
 
 // ── TaskChecklist ─────────────────────────────────────────────────────────────
 
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function getWeekDates(weekKey: string): string[] {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekKey + "T00:00:00");
+    d.setDate(d.getDate() + i);
+    return d.toISOString().slice(0, 10);
+  });
+}
+
+function todayKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function TaskChecklist({
   tasks,
+  weekKey,
   isCurrentWeek,
   onToggle,
   onDelete,
   onAdd,
 }: {
   tasks: Task[];
+  weekKey: string;
   isCurrentWeek: boolean;
   onToggle: (id: number, e: React.MouseEvent) => void;
   onDelete: (id: number) => void;
-  onAdd: (title: string) => void;
+  onAdd: (title: string, dueDate: string) => void;
 }) {
+  const weekDates = getWeekDates(weekKey);
+  const today = todayKey();
+  const defaultDay = isCurrentWeek && weekDates.includes(today) ? today : null;
+  const [selectedDay, setSelectedDay] = useState<string | null>(defaultDay);
   const [input, setInput] = useState("");
+
+  // Reset selected day when week changes
+  useEffect(() => {
+    const dates = getWeekDates(weekKey);
+    const t = todayKey();
+    setSelectedDay(isCurrentWeek && dates.includes(t) ? t : null);
+  }, [weekKey, isCurrentWeek]);
+
+  const visibleTasks = selectedDay
+    ? tasks.filter((t) => t.due_date === selectedDay || (!t.due_date && selectedDay === today))
+    : tasks;
+
+  const done = visibleTasks.filter((t) => t.completed).length;
 
   function handleAdd() {
     if (!input.trim()) return;
-    onAdd(input.trim());
+    onAdd(input.trim(), selectedDay ?? weekKey);
     setInput("");
   }
 
-  const done = tasks.filter((t) => t.completed).length;
-
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-gray-900">This Week's Tasks</h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold text-gray-900">Tasks</h3>
         <div className="flex items-center gap-3">
-          {tasks.length > 0 && (
-            <span className="text-xs text-gray-400">{done}/{tasks.length} done</span>
+          {visibleTasks.length > 0 && (
+            <span className="text-xs text-gray-400">{done}/{visibleTasks.length} done</span>
           )}
           <Link href="/tasks" className="flex items-center gap-1 text-xs text-indigo-600 hover:underline">
             All tasks <ExternalLink size={11} />
@@ -249,32 +281,75 @@ function TaskChecklist({
         </div>
       </div>
 
-      {isCurrentWeek && (
-        <div className="flex gap-2 mb-4">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            placeholder="Quick add a task…"
-            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          />
-          <button
-            onClick={handleAdd}
-            disabled={!input.trim()}
-            className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 transition-colors"
-          >
-            <Plus size={16} />
-          </button>
-        </div>
-      )}
+      {/* Day bar */}
+      <div className="flex gap-1 mb-4">
+        <button
+          onClick={() => setSelectedDay(null)}
+          className={cn(
+            "flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors",
+            selectedDay === null
+              ? "bg-indigo-600 text-white"
+              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+          )}
+        >
+          All
+        </button>
+        {weekDates.map((date, i) => {
+          const isToday = date === today;
+          const count = tasks.filter((t) => t.due_date === date).length;
+          const isSelected = selectedDay === date;
+          return (
+            <button
+              key={date}
+              onClick={() => setSelectedDay(isSelected ? null : date)}
+              className={cn(
+                "flex-1 flex flex-col items-center py-1.5 rounded-lg text-xs font-medium transition-colors relative",
+                isSelected
+                  ? "bg-indigo-600 text-white"
+                  : isToday
+                  ? "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-300"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              )}
+            >
+              <span>{DAY_LABELS[i]}</span>
+              {count > 0 && (
+                <span className={cn(
+                  "w-1.5 h-1.5 rounded-full mt-0.5",
+                  isSelected ? "bg-white" : "bg-indigo-400"
+                )} />
+              )}
+            </button>
+          );
+        })}
+      </div>
 
-      {tasks.length === 0 ? (
+      {/* Quick add */}
+      <div className="flex gap-2 mb-4">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+          placeholder={selectedDay ? `Add task for ${DAY_LABELS[weekDates.indexOf(selectedDay)]}…` : "Add task for this week…"}
+          className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        />
+        <button
+          onClick={handleAdd}
+          disabled={!input.trim()}
+          className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+        >
+          <Plus size={16} />
+        </button>
+      </div>
+
+      {visibleTasks.length === 0 ? (
         <p className="text-sm text-gray-400 text-center py-4">
-          {isCurrentWeek ? "No tasks due this week — add one above or go to Tasks to set due dates." : "No tasks were due this week."}
+          {selectedDay
+            ? `Nothing due ${selectedDay === today ? "today" : `on ${DAY_LABELS[weekDates.indexOf(selectedDay)]}`}`
+            : "No tasks due this week — add one above or set due dates in Tasks."}
         </p>
       ) : (
         <ul className="space-y-1.5">
-          {tasks
+          {visibleTasks
             .slice()
             .sort((a, b) => (a.completed === b.completed ? 0 : a.completed ? 1 : -1))
             .map((task) => {
