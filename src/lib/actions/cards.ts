@@ -80,7 +80,7 @@ const DEFAULT_CARDS: CardBenefitData[] = [
         id: "apple-tv",
         benefit: "Apple TV+ & Apple Music",
         maxValue: 288,
-        nonOrganic: { notes: "Activated because of the card — now using it", value: 288 },
+        organic: { notes: "Activated because of the card — now using it", value: 288 },
       },
       {
         id: "ihg",
@@ -190,7 +190,24 @@ const DEFAULT_CARDS: CardBenefitData[] = [
 ];
 
 export async function getCards(): Promise<CardBenefitData[]> {
-  return getData<CardBenefitData[]>("cards_v1", DEFAULT_CARDS);
+  const cards = await getData<CardBenefitData[]>("cards_v1", DEFAULT_CARDS);
+  // Migrate: move Apple TV+ & Apple Music from nonOrganic → organic on CSR
+  const migrated = cards.map((card) => {
+    if (card.id !== "chase-sapphire-reserve") return card;
+    return {
+      ...card,
+      benefits: card.benefits.map((row) => {
+        if (row.id !== "apple-tv") return row;
+        if (row.organic) return row; // already correct
+        return {
+          ...row,
+          organic: row.nonOrganic ?? { notes: "Activated because of the card — now using it", value: 288 },
+          nonOrganic: undefined,
+        };
+      }),
+    };
+  });
+  return migrated;
 }
 
 export async function saveCards(cards: CardBenefitData[]): Promise<void> {
