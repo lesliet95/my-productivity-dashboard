@@ -27,7 +27,7 @@ export default function Sidebar() {
         <h1 className="text-xl font-bold text-gray-900">Productivity</h1>
         <p className="text-sm text-gray-500 mt-1">Your personal hub</p>
       </div>
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {links.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
