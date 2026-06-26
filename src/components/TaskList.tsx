@@ -321,13 +321,67 @@ function AddTableRow({ onAdd, onCancel }: { onAdd: (t: Task) => void; onCancel: 
   );
 }
 
+// ── Archive section ───────────────────────────────────────────────────────────
+
+function ArchiveSection({ tasks, onToggle, onDelete, onDescriptionSave }: {
+  tasks: Task[];
+  onToggle: (id: number) => void;
+  onDelete: (id: number) => void;
+  onDescriptionSave: (id: number, desc: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 mb-3 group"
+      >
+        <ChevronDown size={14} className={cn("text-gray-400 transition-transform", open && "rotate-180")} />
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest group-hover:text-gray-600 transition-colors">
+          Archive
+        </h2>
+        <span className="text-xs text-gray-300 font-medium">{tasks.length}</span>
+      </button>
+
+      {open && (
+        <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50">
+                <th className="text-left py-2.5 px-4 text-xs font-semibold text-gray-400">Name</th>
+                <th className="text-left py-2.5 px-4 text-xs font-semibold text-gray-400">Due Date</th>
+                <th className="text-left py-2.5 px-4 text-xs font-semibold text-gray-400">Priority</th>
+                <th className="text-left py-2.5 px-4 text-xs font-semibold text-gray-400">Category</th>
+                <th className="text-center py-2.5 px-4 text-xs font-semibold text-gray-400">Completed</th>
+                <th className="py-2.5 pr-4" />
+              </tr>
+            </thead>
+            <tbody>
+              {tasks.length === 0 ? (
+                <tr><td colSpan={6} className="text-center py-10 text-sm text-gray-300">No completed tasks yet</td></tr>
+              ) : (
+                tasks.map((t) => (
+                  <TableRow key={t.id} task={t} onToggle={onToggle} onDelete={onDelete} onDescriptionSave={onDescriptionSave} />
+                ))
+              )}
+            </tbody>
+          </table>
+          <div className="px-4 py-2 border-t border-gray-100 bg-gray-50 text-xs text-gray-400 font-medium tracking-wide">
+            COUNT {tasks.length}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Root ───────────────────────────────────────────────────────────────────────
 
 export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
   const [tasks, setTasks] = useState(initialTasks);
   const [, startTransition] = useTransition();
   const [showAddRow, setShowAddRow] = useState(false);
-  const [tableFilter, setTableFilter] = useState<"all" | "pending" | "completed">("all");
 
   function handleToggle(id: number) {
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, completed: !t.completed } : t));
@@ -349,12 +403,15 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
   }
 
   const tableTasks = tasks
-    .filter((t) => tableFilter === "all" ? true : tableFilter === "pending" ? !t.completed : t.completed)
+    .filter((t) => !t.completed)
     .sort((a, b) => {
-      if (a.completed !== b.completed) return a.completed ? 1 : -1;
       const p = { high: 0, medium: 1, low: 2 };
       return (p[a.priority] ?? 1) - (p[b.priority] ?? 1);
     });
+
+  const archivedTasks = tasks
+    .filter((t) => t.completed)
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 
   const hasUncategorized = tasks.some((t) => !t.category);
 
@@ -379,25 +436,14 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
         )}
       </div>
 
-      {/* Full table */}
+      {/* Full to-do table */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">To-Do List</h2>
-          <div className="flex items-center gap-2">
-            <div className="flex gap-0.5 bg-gray-100 p-0.5 rounded-lg">
-              {(["all", "pending", "completed"] as const).map((f) => (
-                <button key={f} onClick={() => setTableFilter(f)}
-                  className={cn("px-3 py-1 rounded-md text-xs font-medium capitalize transition-colors",
-                    tableFilter === f ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700")}>
-                  {f}
-                </button>
-              ))}
-            </div>
-            <button onClick={() => setShowAddRow(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 transition-colors">
-              <Plus size={13} /> New
-            </button>
-          </div>
+          <button onClick={() => setShowAddRow(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 transition-colors">
+            <Plus size={13} /> New
+          </button>
         </div>
 
         <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
@@ -417,7 +463,7 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
                 <AddTableRow onAdd={(t) => { handleAdd(t); setShowAddRow(false); }} onCancel={() => setShowAddRow(false)} />
               )}
               {tableTasks.length === 0 && !showAddRow ? (
-                <tr><td colSpan={6} className="text-center py-12 text-sm text-gray-400">No tasks — click New to add one</td></tr>
+                <tr><td colSpan={6} className="text-center py-12 text-sm text-gray-400">All clear — click New to add a task</td></tr>
               ) : (
                 tableTasks.map((t) => <TableRow key={t.id} task={t} onToggle={handleToggle} onDelete={handleDelete} onDescriptionSave={handleDescriptionSave} />)
               )}
@@ -428,6 +474,9 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
           </div>
         </div>
       </div>
+
+      {/* Archive */}
+      <ArchiveSection tasks={archivedTasks} onToggle={handleToggle} onDelete={handleDelete} onDescriptionSave={handleDescriptionSave} />
     </div>
   );
 }
