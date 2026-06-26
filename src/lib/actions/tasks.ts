@@ -59,3 +59,10 @@ export async function deleteTask(id: number) {
   revalidatePath("/week");
   revalidatePath("/");
 }
+
+export async function updateTaskDescription(id: number, description: string) {
+  await getDb()`
+    UPDATE tasks SET description = ${description || null}, updated_at = now() WHERE id = ${id}
+  `;
+  revalidatePath("/tasks");
+}

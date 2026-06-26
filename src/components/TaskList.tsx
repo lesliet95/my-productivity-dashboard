@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { toggleTask, deleteTask, createTask, type Task } from "@/lib/actions/tasks";
+import { toggleTask, deleteTask, createTask, updateTaskDescription, type Task } from "@/lib/actions/tasks";
 import { TASK_CATEGORIES, CATEGORY_STYLES, type TaskCategory } from "@/lib/taskCategories";
 import { Plus, Trash2, ChevronDown, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -58,7 +58,7 @@ function InlineAddTask({ category, onAdd }: { category: TaskCategory | null; onA
         onClick={() => setOpen(true)}
         className="flex items-center gap-1.5 w-full px-3 py-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-b-xl transition-colors"
       >
-        <Plus size={12} /> New page
+        <Plus size={12} /> New task
       </button>
     );
   }
@@ -93,12 +93,68 @@ function InlineAddTask({ category, onAdd }: { category: TaskCategory | null; onA
 
 // ── Category column card ───────────────────────────────────────────────────────
 
-function CategoryColumn({ category, tasks, onToggle, onDelete, onAdd }: {
+function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave }: {
+  task: Task;
+  onToggle: (id: number) => void;
+  onDelete: (id: number) => void;
+  onDescriptionSave: (id: number, desc: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [draft, setDraft] = useState(task.description ?? "");
+
+  function handleBlur() {
+    if (draft !== (task.description ?? "")) {
+      onDescriptionSave(task.id, draft);
+    }
+    if (!draft.trim()) setExpanded(false);
+  }
+
+  return (
+    <div className="rounded-lg hover:bg-gray-50 group border border-transparent hover:border-gray-100 transition-all">
+      <div className="flex items-start gap-2 px-2 py-1.5">
+        <input type="checkbox" checked={false} onChange={() => onToggle(task.id)}
+          className="mt-0.5 w-3.5 h-3.5 shrink-0 rounded border-gray-300 text-indigo-600 cursor-pointer" />
+        <div className="flex-1 min-w-0">
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            className="text-xs font-medium text-gray-800 leading-snug text-left w-full hover:text-indigo-600 transition-colors"
+          >
+            {task.title}
+          </button>
+          {task.due_date && <p className="text-[10px] text-gray-400 mt-0.5">{formatDate(task.due_date)}</p>}
+        </div>
+        <button onClick={() => onDelete(task.id)}
+          className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all shrink-0 mt-0.5">
+          <Trash2 size={11} />
+        </button>
+      </div>
+      {expanded && (
+        <div className="px-2 pb-2 ml-5">
+          <textarea
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={handleBlur}
+            placeholder="Add a description…"
+            rows={2}
+            className="w-full text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-300 placeholder-gray-300"
+          />
+          {task.description && (
+            <p className="text-[10px] text-gray-400 mt-1 italic">{task.description}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CategoryColumn({ category, tasks, onToggle, onDelete, onAdd, onDescriptionSave }: {
   category: TaskCategory | "Uncategorized";
   tasks: Task[];
   onToggle: (id: number) => void;
   onDelete: (id: number) => void;
   onAdd: (t: Task) => void;
+  onDescriptionSave: (id: number, desc: string) => void;
 }) {
   const accent = COL_ACCENT[category];
   const pending = tasks.filter((t) => !t.completed).length;
@@ -112,18 +168,7 @@ function CategoryColumn({ category, tasks, onToggle, onDelete, onAdd }: {
       </div>
       <div className="flex-1 p-2 space-y-1 min-h-[72px]">
         {tasks.filter((t) => !t.completed).map((task) => (
-          <div key={task.id} className="flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 group">
-            <input type="checkbox" checked={false} onChange={() => onToggle(task.id)}
-              className="mt-0.5 w-3.5 h-3.5 shrink-0 rounded border-gray-300 text-indigo-600 cursor-pointer" />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-gray-800 leading-snug">{task.title}</p>
-              {task.due_date && <p className="text-[10px] text-gray-400 mt-0.5">{formatDate(task.due_date)}</p>}
-            </div>
-            <button onClick={() => onDelete(task.id)}
-              className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all shrink-0">
-              <Trash2 size={11} />
-            </button>
-          </div>
+          <ColumnTaskCard key={task.id} task={task} onToggle={onToggle} onDelete={onDelete} onDescriptionSave={onDescriptionSave}  />
         ))}
       </div>
       <InlineAddTask category={category === "Uncategorized" ? null : category} onAdd={onAdd} />
@@ -131,25 +176,36 @@ function CategoryColumn({ category, tasks, onToggle, onDelete, onAdd }: {
   );
 }
 
-// ── Table row ──────────────────────────────────────────────────────────────────
+// ── Table row ─────────────────────────────────────────────────────────────────
 
-function TableRow({ task, onToggle, onDelete }: {
-  task: Task; onToggle: (id: number) => void; onDelete: (id: number) => void;
+function TableRow({ task, onToggle, onDelete, onDescriptionSave }: {
+  task: Task;
+  onToggle: (id: number) => void;
+  onDelete: (id: number) => void;
+  onDescriptionSave: (id: number, desc: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [draft, setDraft] = useState(task.description ?? "");
   const isOverdue = !task.completed && task.due_date && task.due_date < new Date().toISOString().slice(0, 10);
+
+  function handleDescBlur() {
+    if (draft !== (task.description ?? "")) {
+      onDescriptionSave(task.id, draft);
+    }
+  }
 
   return (
     <>
       <tr className={cn("group border-b border-gray-100 hover:bg-gray-50 transition-colors", task.completed && "opacity-50")}>
         <td className="py-2.5 px-4">
           <div className="flex items-center gap-2">
-            {task.description && (
-              <button onClick={() => setExpanded((v) => !v)} className="text-gray-400 hover:text-gray-600 shrink-0">
-                <ChevronDown size={13} className={cn("transition-transform", expanded && "rotate-180")} />
-              </button>
-            )}
-            <span className={cn("text-sm font-medium", task.completed && "line-through text-gray-400")}>{task.title}</span>
+            <button onClick={() => setExpanded((v) => !v)} className="text-gray-400 hover:text-indigo-500 shrink-0 transition-colors">
+              <ChevronDown size={13} className={cn("transition-transform", expanded && "rotate-180")} />
+            </button>
+            <span className={cn("text-sm font-medium cursor-pointer hover:text-indigo-600 transition-colors", task.completed && "line-through text-gray-400")}
+              onClick={() => setExpanded((v) => !v)}>
+              {task.title}
+            </span>
           </div>
         </td>
         <td className="py-2.5 px-4 text-xs whitespace-nowrap">
@@ -180,9 +236,19 @@ function TableRow({ task, onToggle, onDelete }: {
           </button>
         </td>
       </tr>
-      {expanded && task.description && (
+      {expanded && (
         <tr className="border-b border-gray-100 bg-gray-50">
-          <td colSpan={6} className="px-10 py-2 text-xs text-gray-500">{task.description}</td>
+          <td colSpan={6} className="px-10 py-2">
+            <textarea
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={handleDescBlur}
+              placeholder="Add a description…"
+              rows={2}
+              className="w-full text-xs text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300 placeholder-gray-300"
+            />
+          </td>
         </tr>
       )}
     </>
@@ -277,6 +343,11 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
     setTasks((prev) => [task, ...prev]);
   }
 
+  function handleDescriptionSave(id: number, description: string) {
+    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, description: description || null } : t));
+    startTransition(() => updateTaskDescription(id, description));
+  }
+
   const tableTasks = tasks
     .filter((t) => tableFilter === "all" ? true : tableFilter === "pending" ? !t.completed : t.completed)
     .sort((a, b) => {
@@ -296,14 +367,14 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
           {TASK_CATEGORIES.map((cat) => (
             <CategoryColumn key={cat} category={cat}
               tasks={tasks.filter((t) => t.category === cat)}
-              onToggle={handleToggle} onDelete={handleDelete} onAdd={handleAdd} />
+              onToggle={handleToggle} onDelete={handleDelete} onAdd={handleAdd} onDescriptionSave={handleDescriptionSave} />
           ))}
         </div>
         {hasUncategorized && (
           <div className="mt-3 max-w-[220px]">
             <CategoryColumn category="Uncategorized"
               tasks={tasks.filter((t) => !t.category)}
-              onToggle={handleToggle} onDelete={handleDelete} onAdd={handleAdd} />
+              onToggle={handleToggle} onDelete={handleDelete} onAdd={handleAdd} onDescriptionSave={handleDescriptionSave} />
           </div>
         )}
       </div>
@@ -348,7 +419,7 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
               {tableTasks.length === 0 && !showAddRow ? (
                 <tr><td colSpan={6} className="text-center py-12 text-sm text-gray-400">No tasks — click New to add one</td></tr>
               ) : (
-                tableTasks.map((t) => <TableRow key={t.id} task={t} onToggle={handleToggle} onDelete={handleDelete} />)
+                tableTasks.map((t) => <TableRow key={t.id} task={t} onToggle={handleToggle} onDelete={handleDelete} onDescriptionSave={handleDescriptionSave} />)
               )}
             </tbody>
           </table>
