@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { toggleTask, deleteTask, createTask, updateTaskDescription, type Task } from "@/lib/actions/tasks";
 import { TASK_CATEGORIES, CATEGORY_STYLES, type TaskCategory } from "@/lib/taskCategories";
-import { Plus, Trash2, ChevronDown, Calendar } from "lucide-react";
+import { Plus, Trash2, ChevronDown, Calendar, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -321,6 +321,133 @@ function AddTableRow({ onAdd, onCancel }: { onAdd: (t: Task) => void; onCancel: 
   );
 }
 
+// ── Calendar view ─────────────────────────────────────────────────────────────
+
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function CalendarView({ tasks, onToggle }: { tasks: Task[]; onToggle: (id: number) => void }) {
+  const today = new Date();
+  const [year, setYear] = useState(today.getFullYear());
+  const [month, setMonth] = useState(today.getMonth()); // 0-indexed
+
+  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayStr = today.toISOString().slice(0, 10);
+
+  // Map tasks by due date key
+  const tasksByDate: Record<string, Task[]> = {};
+  for (const t of tasks) {
+    if (!t.due_date) continue;
+    if (!tasksByDate[t.due_date]) tasksByDate[t.due_date] = [];
+    tasksByDate[t.due_date].push(t);
+  }
+
+  const monthLabel = new Date(year, month).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+  function prev() {
+    if (month === 0) { setMonth(11); setYear((y) => y - 1); }
+    else setMonth((m) => m - 1);
+  }
+  function next() {
+    if (month === 11) { setMonth(0); setYear((y) => y + 1); }
+    else setMonth((m) => m + 1);
+  }
+
+  // Build grid cells: nulls for padding + day numbers
+  const cells: (number | null)[] = [
+    ...Array(firstDay).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  // Pad to full weeks
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  // Tasks with no due date
+  const undated = tasks.filter((t) => !t.due_date && !t.completed);
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      {/* Month navigation */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+        <button onClick={prev} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+          <ChevronLeft size={16} />
+        </button>
+        <span className="text-sm font-semibold text-gray-800">{monthLabel}</span>
+        <button onClick={next} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+          <ChevronRight size={16} />
+        </button>
+      </div>
+
+      {/* Day headers */}
+      <div className="grid grid-cols-7 border-b border-gray-100">
+        {DAY_NAMES.map((d) => (
+          <div key={d} className="text-center py-2 text-xs font-semibold text-gray-400">{d}</div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div className="grid grid-cols-7 divide-x divide-y divide-gray-100">
+        {cells.map((day, i) => {
+          if (!day) return <div key={`pad-${i}`} className="min-h-[90px] bg-gray-50/50" />;
+          const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          const dayTasks = tasksByDate[dateStr] ?? [];
+          const isToday = dateStr === todayStr;
+          const isPast = dateStr < todayStr;
+
+          return (
+            <div key={dateStr} className={cn("min-h-[90px] p-1.5 flex flex-col", isPast && !isToday && "bg-gray-50/40")}>
+              <span className={cn(
+                "text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full mb-1 self-start",
+                isToday ? "bg-indigo-600 text-white" : isPast ? "text-gray-300" : "text-gray-600"
+              )}>
+                {day}
+              </span>
+              <div className="flex flex-col gap-0.5 flex-1">
+                {dayTasks.slice(0, 3).map((t) => {
+                  const cat = t.category ? CATEGORY_STYLES[t.category] : null;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => onToggle(t.id)}
+                      title={t.title}
+                      className={cn(
+                        "text-left text-[10px] px-1.5 py-0.5 rounded truncate w-full leading-snug transition-opacity",
+                        t.completed ? "opacity-40 line-through" : "",
+                        cat ? cat.pill : "bg-indigo-100 text-indigo-700"
+                      )}
+                    >
+                      {t.title}
+                    </button>
+                  );
+                })}
+                {dayTasks.length > 3 && (
+                  <span className="text-[10px] text-gray-400 pl-1">+{dayTasks.length - 3} more</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Undated tasks */}
+      {undated.length > 0 && (
+        <div className="border-t border-gray-100 px-4 py-3">
+          <p className="text-xs font-semibold text-gray-400 mb-2">No due date</p>
+          <div className="flex flex-wrap gap-1.5">
+            {undated.map((t) => {
+              const cat = t.category ? CATEGORY_STYLES[t.category] : null;
+              return (
+                <span key={t.id} className={cn("text-xs px-2 py-0.5 rounded-full font-medium", cat ? cat.pill : "bg-gray-100 text-gray-500")}>
+                  {t.title}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Root ───────────────────────────────────────────────────────────────────────
 
 export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
@@ -357,26 +484,54 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
       return (p[a.priority] ?? 1) - (p[b.priority] ?? 1);
     });
 
+  const [topView, setTopView] = useState<"upcoming" | "calendar">("upcoming");
   const hasUncategorized = tasks.some((t) => !t.category);
 
   return (
     <div className="space-y-8">
-      {/* Category columns */}
+      {/* Top section with view toggle */}
       <div>
-        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">By Category</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          {TASK_CATEGORIES.map((cat) => (
-            <CategoryColumn key={cat} category={cat}
-              tasks={tasks.filter((t) => t.category === cat)}
-              onToggle={handleToggle} onDelete={handleDelete} onAdd={handleAdd} onDescriptionSave={handleDescriptionSave} />
-          ))}
-        </div>
-        {hasUncategorized && (
-          <div className="mt-3 max-w-[220px]">
-            <CategoryColumn category="Uncategorized"
-              tasks={tasks.filter((t) => !t.category)}
-              onToggle={handleToggle} onDelete={handleDelete} onAdd={handleAdd} onDescriptionSave={handleDescriptionSave} />
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+            {topView === "upcoming" ? "By Category" : "Calendar"}
+          </h2>
+          <div className="flex gap-0.5 bg-gray-100 p-0.5 rounded-lg">
+            <button
+              onClick={() => setTopView("upcoming")}
+              className={cn("flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors",
+                topView === "upcoming" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700")}
+            >
+              <LayoutGrid size={12} /> Upcoming
+            </button>
+            <button
+              onClick={() => setTopView("calendar")}
+              className={cn("flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors",
+                topView === "calendar" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700")}
+            >
+              <Calendar size={12} /> Calendar
+            </button>
           </div>
+        </div>
+
+        {topView === "upcoming" ? (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              {TASK_CATEGORIES.map((cat) => (
+                <CategoryColumn key={cat} category={cat}
+                  tasks={tasks.filter((t) => t.category === cat)}
+                  onToggle={handleToggle} onDelete={handleDelete} onAdd={handleAdd} onDescriptionSave={handleDescriptionSave} />
+              ))}
+            </div>
+            {hasUncategorized && (
+              <div className="mt-3 max-w-[220px]">
+                <CategoryColumn category="Uncategorized"
+                  tasks={tasks.filter((t) => !t.category)}
+                  onToggle={handleToggle} onDelete={handleDelete} onAdd={handleAdd} onDescriptionSave={handleDescriptionSave} />
+              </div>
+            )}
+          </>
+        ) : (
+          <CalendarView tasks={tasks.filter((t) => !t.completed)} onToggle={handleToggle} />
         )}
       </div>
 
