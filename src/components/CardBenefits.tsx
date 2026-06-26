@@ -149,14 +149,17 @@ export default function CardBenefits({ cards: initial }: { cards: CardBenefitDat
 
   function updateOrganic(rowId: string, patch: Partial<NonNullable<BenefitRow["organic"]>>) {
     const row = card.benefits.find((r) => r.id === rowId);
-    if (!row?.organic) return;
-    updateRow(rowId, { organic: { ...row.organic, ...patch } });
+    const current = row?.organic ?? { notes: "", value: null };
+    const merged = { ...current, ...patch };
+    // Remove the entry entirely if notes are cleared
+    updateRow(rowId, { organic: merged.notes.trim() ? merged : undefined });
   }
 
   function updateNonOrganic(rowId: string, patch: Partial<NonNullable<BenefitRow["nonOrganic"]>>) {
     const row = card.benefits.find((r) => r.id === rowId);
-    if (!row?.nonOrganic) return;
-    updateRow(rowId, { nonOrganic: { ...row.nonOrganic, ...patch } });
+    const current = row?.nonOrganic ?? { notes: "", value: null };
+    const merged = { ...current, ...patch };
+    updateRow(rowId, { nonOrganic: merged.notes.trim() ? merged : undefined });
   }
 
   const usedCount = card.benefits.filter((r) => r.used).length;
@@ -263,63 +266,61 @@ export default function CardBenefits({ cards: initial }: { cards: CardBenefitDat
                 </div>
 
                 {/* Organic notes */}
-                <div className={cn("px-4 py-3 text-xs text-gray-600 flex items-start", row.organic ? accent.orgCell : "bg-white")}>
-                  {row.organic ? (
-                    <span className="flex items-start gap-0.5 w-full">
-                      <NoteIcon icon={row.organic.icon} />
-                      <EditableCell
-                        value={row.organic.notes}
-                        onChange={(v) => updateOrganic(row.id, { notes: v })}
-                        multiline
-                      />
-                    </span>
-                  ) : (
-                    <span className="text-gray-300">—</span>
-                  )}
+                <div className={cn(
+                  "px-4 py-3 text-xs text-gray-600 flex items-start transition-colors",
+                  row.organic?.notes ? accent.orgCell : "bg-white"
+                )}>
+                  <span className="flex items-start gap-0.5 w-full">
+                    {row.organic?.notes && <NoteIcon icon={row.organic.icon} />}
+                    <EditableCell
+                      value={row.organic?.notes ?? ""}
+                      onChange={(v) => updateOrganic(row.id, { notes: v })}
+                      placeholder="Add organic notes…"
+                      multiline
+                    />
+                  </span>
                 </div>
 
                 {/* Organic value */}
-                <div className={cn("px-3 py-3 flex items-center", row.organic ? accent.orgCell : "bg-white")}>
-                  {row.organic ? (
-                    <EditableCell
-                      value={String(row.organic.value ?? "")}
-                      onChange={(v) => updateOrganic(row.id, { value: v })}
-                      className={cn("text-sm", accent.orgValueText)}
-                      placeholder="TBD"
-                    />
-                  ) : (
-                    <span className="text-gray-300">—</span>
-                  )}
+                <div className={cn(
+                  "px-3 py-3 flex items-center transition-colors",
+                  row.organic?.notes ? accent.orgCell : "bg-white"
+                )}>
+                  <EditableCell
+                    value={String(row.organic?.value ?? "")}
+                    onChange={(v) => updateOrganic(row.id, { notes: row.organic?.notes ?? "", value: v })}
+                    className={cn("text-sm", row.organic?.notes ? accent.orgValueText : "text-gray-300")}
+                    placeholder="$0"
+                  />
                 </div>
 
                 {/* Non-organic notes */}
-                <div className={cn("px-4 py-3 text-xs text-gray-600 flex items-start", row.nonOrganic ? accent.nonOrgCell : "bg-white")}>
-                  {row.nonOrganic ? (
-                    <span className="flex items-start gap-0.5 w-full">
-                      <NoteIcon icon={row.nonOrganic.icon} />
-                      <EditableCell
-                        value={row.nonOrganic.notes}
-                        onChange={(v) => updateNonOrganic(row.id, { notes: v })}
-                        multiline
-                      />
-                    </span>
-                  ) : (
-                    <span className="text-gray-300">—</span>
-                  )}
+                <div className={cn(
+                  "px-4 py-3 text-xs text-gray-600 flex items-start transition-colors",
+                  row.nonOrganic?.notes ? accent.nonOrgCell : "bg-white"
+                )}>
+                  <span className="flex items-start gap-0.5 w-full">
+                    {row.nonOrganic?.notes && <NoteIcon icon={row.nonOrganic.icon} />}
+                    <EditableCell
+                      value={row.nonOrganic?.notes ?? ""}
+                      onChange={(v) => updateNonOrganic(row.id, { notes: v })}
+                      placeholder="Add non-organic notes…"
+                      multiline
+                    />
+                  </span>
                 </div>
 
                 {/* Non-organic value */}
-                <div className={cn("px-3 py-3 flex items-center", row.nonOrganic ? accent.nonOrgCell : "bg-white")}>
-                  {row.nonOrganic ? (
-                    <EditableCell
-                      value={String(row.nonOrganic.value ?? "")}
-                      onChange={(v) => updateNonOrganic(row.id, { value: v })}
-                      className={cn("text-sm", accent.nonOrgValueText)}
-                      placeholder="TBD"
-                    />
-                  ) : (
-                    <span className="text-gray-300">—</span>
-                  )}
+                <div className={cn(
+                  "px-3 py-3 flex items-center transition-colors",
+                  row.nonOrganic?.notes ? accent.nonOrgCell : "bg-white"
+                )}>
+                  <EditableCell
+                    value={String(row.nonOrganic?.value ?? "")}
+                    onChange={(v) => updateNonOrganic(row.id, { notes: row.nonOrganic?.notes ?? "", value: v })}
+                    className={cn("text-sm", row.nonOrganic?.notes ? accent.nonOrgValueText : "text-gray-300")}
+                    placeholder="$0"
+                  />
                 </div>
               </div>
 
