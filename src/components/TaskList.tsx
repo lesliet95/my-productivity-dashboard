@@ -239,11 +239,11 @@ function TableRow({ task, onToggle, onDelete, onDescriptionSave, onCategoryChang
             value={task.category ?? ""}
             onChange={(e) => onCategoryChange(task.id, (e.target.value as TaskCategory) || null)}
             className={cn(
-              "text-xs px-2 py-0.5 rounded-full font-medium border-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-300",
-              task.category ? CATEGORY_STYLES[task.category].pill : "text-gray-400 bg-transparent"
+              "text-xs px-2 py-1 rounded-full font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-300 border border-transparent hover:border-gray-300 transition-colors",
+              task.category ? CATEGORY_STYLES[task.category].pill : "text-gray-400 bg-gray-100"
             )}
           >
-            <option value="">—</option>
+            <option value="">Uncategorized</option>
             {TASK_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </td>
