@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { toggleTask, deleteTask, createTask, updateTaskDescription, type Task } from "@/lib/actions/tasks";
+import { toggleTask, deleteTask, createTask, updateTaskDescription, updateTaskCategory, type Task } from "@/lib/actions/tasks";
 import { TASK_CATEGORIES, CATEGORY_STYLES, type TaskCategory } from "@/lib/taskCategories";
 import { Plus, Trash2, ChevronDown, Calendar, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -93,11 +93,12 @@ function InlineAddTask({ category, onAdd }: { category: TaskCategory | null; onA
 
 // ── Category column card ───────────────────────────────────────────────────────
 
-function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave }: {
+function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategoryChange }: {
   task: Task;
   onToggle: (id: number) => void;
   onDelete: (id: number) => void;
   onDescriptionSave: (id: number, desc: string) => void;
+  onCategoryChange: (id: number, category: TaskCategory | null) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState(task.description ?? "");
@@ -129,7 +130,7 @@ function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave }: {
         </button>
       </div>
       {expanded && (
-        <div className="px-2 pb-2 ml-5">
+        <div className="px-2 pb-2 ml-5 space-y-1.5">
           <textarea
             autoFocus
             value={draft}
@@ -139,22 +140,31 @@ function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave }: {
             rows={2}
             className="w-full text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-300 placeholder-gray-300"
           />
-          {task.description && (
-            <p className="text-[10px] text-gray-400 mt-1 italic">{task.description}</p>
-          )}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-gray-400">Category:</span>
+            <select
+              value={task.category ?? ""}
+              onChange={(e) => onCategoryChange(task.id, (e.target.value as TaskCategory) || null)}
+              className="text-[10px] text-gray-600 bg-white border border-gray-200 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-300"
+            >
+              <option value="">Uncategorized</option>
+              {TASK_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function CategoryColumn({ category, tasks, onToggle, onDelete, onAdd, onDescriptionSave }: {
+function CategoryColumn({ category, tasks, onToggle, onDelete, onAdd, onDescriptionSave, onCategoryChange }: {
   category: TaskCategory | "Uncategorized";
   tasks: Task[];
   onToggle: (id: number) => void;
   onDelete: (id: number) => void;
   onAdd: (t: Task) => void;
   onDescriptionSave: (id: number, desc: string) => void;
+  onCategoryChange: (id: number, category: TaskCategory | null) => void;
 }) {
   const accent = COL_ACCENT[category];
   const pending = tasks.filter((t) => !t.completed).length;
@@ -168,7 +178,7 @@ function CategoryColumn({ category, tasks, onToggle, onDelete, onAdd, onDescript
       </div>
       <div className="flex-1 p-2 space-y-1 min-h-[72px]">
         {tasks.filter((t) => !t.completed).map((task) => (
-          <ColumnTaskCard key={task.id} task={task} onToggle={onToggle} onDelete={onDelete} onDescriptionSave={onDescriptionSave}  />
+          <ColumnTaskCard key={task.id} task={task} onToggle={onToggle} onDelete={onDelete} onDescriptionSave={onDescriptionSave} onCategoryChange={onCategoryChange} />
         ))}
       </div>
       <InlineAddTask category={category === "Uncategorized" ? null : category} onAdd={onAdd} />
@@ -474,6 +484,11 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
     startTransition(() => updateTaskDescription(id, description));
   }
 
+  function handleCategoryChange(id: number, category: TaskCategory | null) {
+    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, category } : t));
+    startTransition(() => updateTaskCategory(id, category));
+  }
+
   const [tableFilter, setTableFilter] = useState<"all" | "pending" | "completed">("all");
 
   const tableTasks = tasks
@@ -519,14 +534,14 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
               {TASK_CATEGORIES.map((cat) => (
                 <CategoryColumn key={cat} category={cat}
                   tasks={tasks.filter((t) => t.category === cat)}
-                  onToggle={handleToggle} onDelete={handleDelete} onAdd={handleAdd} onDescriptionSave={handleDescriptionSave} />
+                  onToggle={handleToggle} onDelete={handleDelete} onAdd={handleAdd} onDescriptionSave={handleDescriptionSave} onCategoryChange={handleCategoryChange} />
               ))}
             </div>
             {hasUncategorized && (
               <div className="mt-3 max-w-[220px]">
                 <CategoryColumn category="Uncategorized"
                   tasks={tasks.filter((t) => !t.category)}
-                  onToggle={handleToggle} onDelete={handleDelete} onAdd={handleAdd} onDescriptionSave={handleDescriptionSave} />
+                  onToggle={handleToggle} onDelete={handleDelete} onAdd={handleAdd} onDescriptionSave={handleDescriptionSave} onCategoryChange={handleCategoryChange} />
               </div>
             )}
           </>

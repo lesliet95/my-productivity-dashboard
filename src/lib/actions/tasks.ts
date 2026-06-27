@@ -66,3 +66,11 @@ export async function updateTaskDescription(id: number, description: string) {
   `;
   revalidatePath("/tasks");
 }
+
+export async function updateTaskCategory(id: number, category: TaskCategory | null) {
+  await getDb()`
+    UPDATE tasks SET category = ${category}, updated_at = now() WHERE id = ${id}
+  `;
+  revalidatePath("/tasks");
+  revalidatePath("/week");
+}
