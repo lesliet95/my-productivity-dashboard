@@ -235,9 +235,17 @@ function TableRow({ task, onToggle, onDelete, onDescriptionSave, onCategoryChang
           </span>
         </td>
         <td className="py-2.5 px-4">
-          {task.category
-            ? <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", CATEGORY_STYLES[task.category].pill)}>{task.category}</span>
-            : <span className="text-gray-300 text-xs">—</span>}
+          <select
+            value={task.category ?? ""}
+            onChange={(e) => onCategoryChange(task.id, (e.target.value as TaskCategory) || null)}
+            className={cn(
+              "text-xs px-2 py-0.5 rounded-full font-medium border-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-300",
+              task.category ? CATEGORY_STYLES[task.category].pill : "text-gray-400 bg-transparent"
+            )}
+          >
+            <option value="">—</option>
+            {TASK_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
         </td>
         <td className="py-2.5 px-4 text-center">
           <input type="checkbox" checked={task.completed} onChange={() => onToggle(task.id)}
