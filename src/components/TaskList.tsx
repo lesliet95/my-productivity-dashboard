@@ -198,11 +198,13 @@ function TableRow({ task, onToggle, onDelete, onDescriptionSave, onCategoryChang
 }) {
   const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState(task.description ?? "");
+  const draftRef = React.useRef(draft);
+  draftRef.current = draft;
   const isOverdue = !task.completed && task.due_date && task.due_date < new Date().toISOString().slice(0, 10);
 
   function handleDescBlur() {
-    if (draft !== (task.description ?? "")) {
-      onDescriptionSave(task.id, draft);
+    if (draftRef.current !== (task.description ?? "")) {
+      onDescriptionSave(task.id, draftRef.current);
     }
   }
 
