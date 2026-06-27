@@ -21,7 +21,7 @@ export default async function TasksPage() {
             {high > 0 && ` · ${high} high priority`}
           </p>
         </div>
-        <GoogleCalendarSync onSync={() => {}} />
+        <GoogleCalendarSync />
       </div>
       <TaskList initialTasks={tasks} />
     </div>

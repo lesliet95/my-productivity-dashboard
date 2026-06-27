@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { RefreshCw, LogIn, LogOut, Check, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export default function GoogleCalendarSync({ onSync }: { onSync: () => void }) {
+export default function GoogleCalendarSync() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [syncing, setSyncing] = useState(false);
   const [result, setResult] = useState<{ created: number; skipped: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,7 @@ export default function GoogleCalendarSync({ onSync }: { onSync: () => void }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Sync failed");
       setResult({ created: data.created, skipped: data.skipped });
-      if (data.created > 0) onSync(); // refresh task list
+      if (data.created > 0) router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Sync failed");
     } finally {
