@@ -130,9 +130,8 @@ function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategor
         </button>
       </div>
       {expanded && (
-        <div className="px-2 pb-2 ml-5 space-y-1.5">
+        <div className="px-2 pb-2 ml-5 space-y-1.5" onMouseDown={(e) => e.preventDefault()}>
           <textarea
-            autoFocus
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={handleBlur}
@@ -145,6 +144,7 @@ function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategor
             <select
               value={task.category ?? ""}
               onChange={(e) => onCategoryChange(task.id, (e.target.value as TaskCategory) || null)}
+              onMouseDown={(e) => e.stopPropagation()}
               className="text-[10px] text-gray-600 bg-white border border-gray-200 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-300"
             >
               <option value="">Uncategorized</option>
@@ -188,11 +188,12 @@ function CategoryColumn({ category, tasks, onToggle, onDelete, onAdd, onDescript
 
 // ── Table row ─────────────────────────────────────────────────────────────────
 
-function TableRow({ task, onToggle, onDelete, onDescriptionSave }: {
+function TableRow({ task, onToggle, onDelete, onDescriptionSave, onCategoryChange }: {
   task: Task;
   onToggle: (id: number) => void;
   onDelete: (id: number) => void;
   onDescriptionSave: (id: number, desc: string) => void;
+  onCategoryChange: (id: number, category: TaskCategory | null) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState(task.description ?? "");
@@ -249,15 +250,28 @@ function TableRow({ task, onToggle, onDelete, onDescriptionSave }: {
       {expanded && (
         <tr className="border-b border-gray-100 bg-gray-50">
           <td colSpan={6} className="px-10 py-2">
-            <textarea
-              autoFocus
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onBlur={handleDescBlur}
-              placeholder="Add a description…"
-              rows={2}
-              className="w-full text-xs text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300 placeholder-gray-300"
-            />
+            <div className="space-y-2">
+              <textarea
+                autoFocus
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onBlur={handleDescBlur}
+                placeholder="Add a description…"
+                rows={2}
+                className="w-full text-xs text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300 placeholder-gray-300"
+              />
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">Category:</span>
+                <select
+                  value={task.category ?? ""}
+                  onChange={(e) => onCategoryChange(task.id, (e.target.value as TaskCategory) || null)}
+                  className="text-xs text-gray-600 bg-white border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-300"
+                >
+                  <option value="">Uncategorized</option>
+                  {TASK_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
           </td>
         </tr>
       )}
@@ -590,7 +604,7 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
               {tableTasks.length === 0 && !showAddRow ? (
                 <tr><td colSpan={6} className="text-center py-12 text-sm text-gray-400">No tasks — click New to add one</td></tr>
               ) : (
-                tableTasks.map((t) => <TableRow key={t.id} task={t} onToggle={handleToggle} onDelete={handleDelete} onDescriptionSave={handleDescriptionSave} />)
+                tableTasks.map((t) => <TableRow key={t.id} task={t} onToggle={handleToggle} onDelete={handleDelete} onDescriptionSave={handleDescriptionSave} onCategoryChange={handleCategoryChange} />)
               )}
             </tbody>
           </table>
