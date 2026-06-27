@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import React, { useState, useTransition } from "react";
 import { toggleTask, deleteTask, createTask, updateTaskDescription, updateTaskCategory, type Task } from "@/lib/actions/tasks";
 import { TASK_CATEGORIES, CATEGORY_STYLES, type TaskCategory } from "@/lib/taskCategories";
 import { Plus, Trash2, ChevronDown, Calendar, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
@@ -102,12 +102,13 @@ function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategor
 }) {
   const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState(task.description ?? "");
+  const draftRef = React.useRef(draft);
+  draftRef.current = draft;
 
   function handleBlur() {
-    if (draft !== (task.description ?? "")) {
-      onDescriptionSave(task.id, draft);
+    if (draftRef.current !== (task.description ?? "")) {
+      onDescriptionSave(task.id, draftRef.current);
     }
-    if (!draft.trim()) setExpanded(false);
   }
 
   return (
@@ -130,8 +131,9 @@ function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategor
         </button>
       </div>
       {expanded && (
-        <div className="px-2 pb-2 ml-5 space-y-1.5" onMouseDown={(e) => e.preventDefault()}>
+        <div className="px-2 pb-2 ml-5 space-y-1.5">
           <textarea
+            autoFocus
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={handleBlur}
@@ -144,7 +146,6 @@ function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategor
             <select
               value={task.category ?? ""}
               onChange={(e) => onCategoryChange(task.id, (e.target.value as TaskCategory) || null)}
-              onMouseDown={(e) => e.stopPropagation()}
               className="text-[10px] text-gray-600 bg-white border border-gray-200 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-300"
             >
               <option value="">Uncategorized</option>
