@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import { Check, Trash2, Plus, ListChecks, CalendarDays, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  toggleWeddingTask, addWeddingTask, deleteWeddingTask,
+  toggleWeddingTask, addWeddingTask, deleteWeddingTask, updateWeddingTask,
 } from "@/lib/actions/wedding";
 import {
   WEDDING_CATEGORIES, WEDDING_CATEGORY_STYLES,
@@ -76,13 +76,33 @@ function AddTaskRow({
 
 // ── Single task row ────────────────────────────────────────────────────────────
 function TaskRow({
-  task, onToggle, onDelete, showTime,
+  task, onToggle, onDelete, onEdit, showTime,
 }: {
   task: WeddingTask;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit: (id: string, title: string) => void;
   showTime?: boolean;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(task.title);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function startEdit() {
+    setDraft(task.title);
+    setEditing(true);
+    setTimeout(() => inputRef.current?.select(), 0);
+  }
+
+  function commitEdit() {
+    setEditing(false);
+    if (draft.trim() && draft.trim() !== task.title) {
+      onEdit(task.id, draft.trim());
+    } else {
+      setDraft(task.title);
+    }
+  }
+
   return (
     <div className={cn(
       "flex items-start gap-2 px-3 py-2 group hover:bg-gray-50 rounded-lg transition-colors",
@@ -105,9 +125,24 @@ function TaskRow({
             <Clock size={9} /> {task.time}
           </div>
         )}
-        <span className={cn("text-xs leading-snug", task.completed && "line-through text-gray-400")}>
-          {task.title}
-        </span>
+        {editing ? (
+          <input
+            ref={inputRef}
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={(e) => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") { setEditing(false); setDraft(task.title); } }}
+            className="w-full text-xs border-b border-rose-300 focus:outline-none bg-transparent pb-0.5"
+          />
+        ) : (
+          <span
+            onClick={startEdit}
+            className={cn("text-xs leading-snug cursor-text hover:text-rose-600 transition-colors", task.completed && "line-through text-gray-400")}
+          >
+            {task.title}
+          </span>
+        )}
       </div>
       <button
         onClick={() => onDelete(task.id)}
@@ -121,13 +156,14 @@ function TaskRow({
 
 // ── Category column ────────────────────────────────────────────────────────────
 function CategoryColumn({
-  category, tasks, onToggle, onDelete, onAdd,
+  category, tasks, onToggle, onDelete, onAdd, onEdit,
 }: {
   category: WeddingCategory;
   tasks: WeddingTask[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onAdd: (t: WeddingTask) => void;
+  onEdit: (id: string, title: string) => void;
 }) {
   const style = WEDDING_CATEGORY_STYLES[category];
   const done = tasks.filter((t) => t.completed).length;
@@ -142,7 +178,7 @@ function CategoryColumn({
       </div>
       <div className="flex-1 p-1 space-y-0.5 min-h-[72px]">
         {tasks.map((task) => (
-          <TaskRow key={task.id} task={task} onToggle={onToggle} onDelete={onDelete} />
+          <TaskRow key={task.id} task={task} onToggle={onToggle} onDelete={onDelete} onEdit={onEdit} />
         ))}
       </div>
       <AddTaskRow category={category} onAdd={onAdd} />
@@ -152,11 +188,12 @@ function CategoryColumn({
 
 // ── Schedule view ──────────────────────────────────────────────────────────────
 function ScheduleView({
-  tasks, onToggle, onDelete,
+  tasks, onToggle, onDelete, onEdit,
 }: {
   tasks: WeddingTask[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit: (id: string, title: string) => void;
 }) {
   const taskById = Object.fromEntries(tasks.map((t) => [t.id, t]));
 
@@ -185,7 +222,7 @@ function ScheduleView({
               </div>
               <div className="p-2 space-y-0.5 min-h-[120px]">
                 {dayTasks.map((task) => (
-                  <TaskRow key={task.id} task={task} onToggle={onToggle} onDelete={onDelete} showTime={isSat} />
+                  <TaskRow key={task.id} task={task} onToggle={onToggle} onDelete={onDelete} onEdit={onEdit} showTime={isSat} />
                 ))}
               </div>
             </div>
@@ -199,7 +236,7 @@ function ScheduleView({
         <div className="grid grid-cols-2 gap-3">
           {tasks.filter((t) => t.category === "Week of").map((task) => (
             <div key={task.id} className="bg-white border border-gray-200 rounded-xl px-1 py-1">
-              <TaskRow task={task} onToggle={onToggle} onDelete={onDelete} />
+              <TaskRow task={task} onToggle={onToggle} onDelete={onDelete} onEdit={onEdit} />
             </div>
           ))}
         </div>
@@ -226,6 +263,11 @@ export default function WeddingPlanner({ initialTasks }: { initialTasks: Wedding
 
   function handleAdd(task: WeddingTask) {
     setTasks((prev) => [...prev, task]);
+  }
+
+  function handleEdit(id: string, title: string) {
+    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, title } : t));
+    startTransition(async () => { await updateWeddingTask(id, title); });
   }
 
   const done = tasks.filter((t) => t.completed).length;
@@ -286,11 +328,12 @@ export default function WeddingPlanner({ initialTasks }: { initialTasks: Wedding
               onToggle={handleToggle}
               onDelete={handleDelete}
               onAdd={handleAdd}
+              onEdit={handleEdit}
             />
           ))}
         </div>
       ) : (
-        <ScheduleView tasks={tasks} onToggle={handleToggle} onDelete={handleDelete} />
+        <ScheduleView tasks={tasks} onToggle={handleToggle} onDelete={handleDelete} onEdit={handleEdit} />
       )}
     </div>
   );

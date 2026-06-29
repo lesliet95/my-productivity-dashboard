@@ -71,3 +71,8 @@ export async function deleteWeddingTask(id: string) {
   const tasks = await getWeddingTasks();
   await save(tasks.filter((t) => t.id !== id));
 }
+
+export async function updateWeddingTask(id: string, title: string) {
+  const tasks = await getWeddingTasks();
+  await save(tasks.map((t) => t.id === id ? { ...t, title } : t));
+}
