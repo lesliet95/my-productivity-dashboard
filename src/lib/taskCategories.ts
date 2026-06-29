@@ -1,6 +1,6 @@
-export type TaskCategory = "Home" | "Finances" | "Music Lovers" | "Food" | "Self Care";
+export type TaskCategory = "Home" | "Finances" | "Music Lovers" | "Food" | "Self Care" | "Admin";
 
-export const TASK_CATEGORIES: TaskCategory[] = ["Home", "Finances", "Music Lovers", "Food", "Self Care"];
+export const TASK_CATEGORIES: TaskCategory[] = ["Home", "Finances", "Music Lovers", "Food", "Self Care", "Admin"];
 
 export const CATEGORY_STYLES: Record<TaskCategory, { pill: string; border: string }> = {
   "Home":         { pill: "bg-blue-100 text-blue-700",     border: "border-l-blue-400" },
@@ -8,4 +8,5 @@ export const CATEGORY_STYLES: Record<TaskCategory, { pill: string; border: strin
   "Music Lovers": { pill: "bg-purple-100 text-purple-700", border: "border-l-purple-400" },
   "Food":         { pill: "bg-orange-100 text-orange-700", border: "border-l-orange-400" },
   "Self Care":    { pill: "bg-pink-100 text-pink-700",     border: "border-l-pink-400" },
+  "Admin":        { pill: "bg-slate-100 text-slate-700",   border: "border-l-slate-400" },
 };

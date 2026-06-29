@@ -25,6 +25,7 @@ const COL_ACCENT: Record<TaskCategory | "Uncategorized", { header: string; label
   "Music Lovers":  { header: "bg-purple-50", label: "text-purple-700", dot: "bg-purple-400" },
   "Food":          { header: "bg-orange-50", label: "text-orange-700", dot: "bg-orange-400" },
   "Self Care":     { header: "bg-pink-50",   label: "text-pink-700",   dot: "bg-pink-400" },
+  "Admin":         { header: "bg-slate-50",  label: "text-slate-700",  dot: "bg-slate-400" },
   "Uncategorized": { header: "bg-gray-50",   label: "text-gray-600",   dot: "bg-gray-400" },
 };
 
