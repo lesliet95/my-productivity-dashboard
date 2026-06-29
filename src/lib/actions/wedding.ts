@@ -25,29 +25,35 @@ const DEFAULT_TASKS: WeddingTask[] = [
   { id: "h6",  title: "Order mixed fruits jam",                   completed: true,  category: "House Maintenance" },
 
   // Meals
-  { id: "m1",  title: "Thursday breakfast/lunch",                 completed: false, category: "Meals" },
-  { id: "m2",  title: "Friday lunch downtown",                    completed: false, category: "Meals" },
+  { id: "m1",  title: "Thursday breakfast/lunch",                 completed: false, category: "Meals", scheduleDay: "thu" },
+  { id: "m2",  title: "Friday lunch downtown",                    completed: false, category: "Meals", scheduleDay: "fri" },
   { id: "m3",  title: "Breakfast options — bacon, eggs, fresh fruit, muffins", completed: false, category: "Meals" },
-  { id: "m4",  title: "Spaghetti for Thursday & Friday night with Nathan's mom", completed: false, category: "Meals" },
-  { id: "m5",  title: "Thursday or Friday night Bittersweet dessert", completed: false, category: "Meals" },
-  { id: "m6",  title: "Saturday snacks — ginger berry drink, ginger pineapple cherry mint drink, popcorn, hummus & pita, veggies", completed: false, category: "Meals" },
+  { id: "m4",  title: "Spaghetti for Thursday & Friday night with Nathan's mom", completed: false, category: "Meals", scheduleDay: "thu" },
+  { id: "m5",  title: "Thursday or Friday night Bittersweet dessert", completed: false, category: "Meals", scheduleDay: "fri" },
+  { id: "m6",  title: "Saturday snacks — ginger berry drink, ginger pineapple cherry mint drink, popcorn, hummus & pita, veggies", completed: false, category: "Meals", scheduleDay: "sat" },
 
   // Week of
-  { id: "k1",  title: "Get nails done or paint nails",            completed: false, category: "Week of" },
-  { id: "k2",  title: "Pick up snacks (popcorn, fruit, nuts, chips, cherry toaster strudel), eggs, drinks (ginger beer), coffee creamer", completed: false, category: "Week of" },
-  { id: "k3",  title: "Clean house",                              completed: false, category: "Week of" },
-  { id: "k4",  title: "Cook spaghetti",                           completed: false, category: "Week of" },
+  { id: "k1",  title: "Get nails done or paint nails",            completed: false, category: "Week of", scheduleDay: "thu" },
+  { id: "k2",  title: "Pick up snacks (popcorn, fruit, nuts, chips, cherry toaster strudel), eggs, drinks (ginger beer), coffee creamer", completed: false, category: "Week of", scheduleDay: "fri" },
+  { id: "k3",  title: "Clean house",                              completed: false, category: "Week of", scheduleDay: "thu" },
+  { id: "k4",  title: "Cook spaghetti",                           completed: false, category: "Week of", scheduleDay: "thu" },
 
-  // Day of
-  { id: "d1",  title: "Get hair done",                            completed: false, category: "Day of", time: "9:00 AM" },
-  { id: "d2",  title: "Transportation — Kevin picks up siblings, mom & dad pick up Nathan's dad", completed: false, category: "Day of", time: "1:30 PM" },
-  { id: "d3",  title: "Ceremony",                                 completed: false, category: "Day of", time: "2:30 PM" },
-  { id: "d4",  title: "Head to dinner",                           completed: false, category: "Day of", time: "6:30 PM" },
-  { id: "d5",  title: "Dinner",                                   completed: false, category: "Day of", time: "7:00 PM" },
+  // Day of (all Saturday)
+  { id: "d1",  title: "Get hair done",                            completed: false, category: "Day of", time: "9:00 AM",  scheduleDay: "sat" },
+  { id: "d2",  title: "Transportation — Kevin picks up siblings, mom & dad pick up Nathan's dad", completed: false, category: "Day of", time: "1:30 PM", scheduleDay: "sat" },
+  { id: "d3",  title: "Ceremony",                                 completed: false, category: "Day of", time: "2:30 PM", scheduleDay: "sat" },
+  { id: "d4",  title: "Head to dinner",                           completed: false, category: "Day of", time: "6:30 PM", scheduleDay: "sat" },
+  { id: "d5",  title: "Dinner",                                   completed: false, category: "Day of", time: "7:00 PM", scheduleDay: "sat" },
 ];
 
 export async function getWeddingTasks(): Promise<WeddingTask[]> {
-  return getData<WeddingTask[]>("wedding_v1", DEFAULT_TASKS);
+  const tasks = await getData<WeddingTask[]>("wedding_v1", DEFAULT_TASKS);
+  // Migrate existing tasks that don't have scheduleDay set
+  return tasks.map((t) => {
+    if (t.scheduleDay) return t;
+    const defaults = DEFAULT_TASKS.find((d) => d.id === t.id);
+    return defaults?.scheduleDay ? { ...t, scheduleDay: defaults.scheduleDay } : t;
+  });
 }
 
 async function save(tasks: WeddingTask[]) {
@@ -75,4 +81,9 @@ export async function deleteWeddingTask(id: string) {
 export async function updateWeddingTask(id: string, title: string) {
   const tasks = await getWeddingTasks();
   await save(tasks.map((t) => t.id === id ? { ...t, title } : t));
+}
+
+export async function updateWeddingTaskFields(id: string, fields: Partial<Pick<WeddingTask, "title" | "time" | "scheduleDay">>) {
+  const tasks = await getWeddingTasks();
+  await save(tasks.map((t) => t.id === id ? { ...t, ...fields } : t));
 }

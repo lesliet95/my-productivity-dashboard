@@ -6,7 +6,8 @@ export interface WeddingTask {
   completed: boolean;
   category: WeddingCategory;
   time?: string;
-  date?: string; // YYYY-MM-DD for week-of tasks
+  date?: string;
+  scheduleDay?: "thu" | "fri" | "sat";
 }
 
 export const WEDDING_CATEGORY_STYLES: Record<WeddingCategory, { pill: string; header: string; dot: string; label: string }> = {
