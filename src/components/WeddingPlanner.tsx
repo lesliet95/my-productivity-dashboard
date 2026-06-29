@@ -134,16 +134,17 @@ function TaskRow({
               onBlur={commitTime}
               onKeyDown={(e) => { if (e.key === "Enter") commitTime(); if (e.key === "Escape") setEditingTime(false); }}
               placeholder="e.g. 3:00 PM"
-              className="text-[10px] border-b border-rose-300 focus:outline-none bg-transparent text-rose-500 w-24 mb-0.5"
+              className="text-[10px] border border-rose-300 rounded px-1 focus:outline-none bg-white text-rose-500 w-28 mb-0.5"
             />
           ) : (
-            <div
-              className="flex items-center gap-1 text-[10px] text-rose-500 font-semibold mb-0.5 cursor-pointer hover:text-rose-700 group/time"
-              onClick={() => { setTimeDraft(task.time ?? ""); setEditingTime(true); }}
+            <button
+              type="button"
+              className="flex items-center gap-1 text-[10px] text-rose-500 font-semibold mb-0.5 hover:text-rose-700 hover:underline"
+              onClick={(e) => { e.stopPropagation(); setTimeDraft(task.time ?? ""); setEditingTime(true); }}
             >
               <Clock size={9} />
               {task.time ?? <span className="text-gray-300 font-normal">+ add time</span>}
-            </div>
+            </button>
           )
         )}
         {editing ? (
