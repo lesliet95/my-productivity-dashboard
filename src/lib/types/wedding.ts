@@ -1,5 +1,11 @@
 export type WeddingCategory = "Wedding Checklist" | "House Maintenance" | "Meals" | "Week of" | "Day of";
 
+export interface WeddingSubtask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
 export interface WeddingTask {
   id: string;
   title: string;
@@ -8,6 +14,7 @@ export interface WeddingTask {
   time?: string;
   date?: string;
   scheduleDay?: "thu" | "fri" | "sat";
+  subtasks?: WeddingSubtask[];
 }
 
 export const WEDDING_CATEGORY_STYLES: Record<WeddingCategory, { pill: string; header: string; dot: string; label: string }> = {

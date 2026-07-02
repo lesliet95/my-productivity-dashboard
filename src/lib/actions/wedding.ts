@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getData, setData } from "@/lib/actions/userData";
-import type { WeddingTask } from "@/lib/types/wedding";
+import type { WeddingTask, WeddingSubtask } from "@/lib/types/wedding";
 
 const DEFAULT_TASKS: WeddingTask[] = [
   // Wedding Checklist
@@ -86,4 +86,37 @@ export async function updateWeddingTask(id: string, title: string) {
 export async function updateWeddingTaskFields(id: string, fields: Partial<Pick<WeddingTask, "title" | "time" | "scheduleDay">>) {
   const tasks = await getWeddingTasks();
   await save(tasks.map((t) => t.id === id ? { ...t, ...fields } : t));
+}
+
+export async function addSubtask(taskId: string, title: string) {
+  const tasks = await getWeddingTasks();
+  const subtask: WeddingSubtask = { id: `s${Date.now()}`, title, completed: false };
+  await save(tasks.map((t) => t.id === taskId
+    ? { ...t, subtasks: [...(t.subtasks ?? []), subtask] }
+    : t
+  ));
+}
+
+export async function toggleSubtask(taskId: string, subtaskId: string) {
+  const tasks = await getWeddingTasks();
+  await save(tasks.map((t) => t.id === taskId
+    ? { ...t, subtasks: (t.subtasks ?? []).map((s) => s.id === subtaskId ? { ...s, completed: !s.completed } : s) }
+    : t
+  ));
+}
+
+export async function deleteSubtask(taskId: string, subtaskId: string) {
+  const tasks = await getWeddingTasks();
+  await save(tasks.map((t) => t.id === taskId
+    ? { ...t, subtasks: (t.subtasks ?? []).filter((s) => s.id !== subtaskId) }
+    : t
+  ));
+}
+
+export async function updateSubtask(taskId: string, subtaskId: string, title: string) {
+  const tasks = await getWeddingTasks();
+  await save(tasks.map((t) => t.id === taskId
+    ? { ...t, subtasks: (t.subtasks ?? []).map((s) => s.id === subtaskId ? { ...s, title } : s) }
+    : t
+  ));
 }
