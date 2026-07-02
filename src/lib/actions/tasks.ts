@@ -84,6 +84,14 @@ export async function updateTaskCategory(id: number, category: TaskCategory | nu
   revalidatePath("/week");
 }
 
+export async function updateTaskPriority(id: number, priority: "low" | "medium" | "high") {
+  await getDb()`
+    UPDATE tasks SET priority = ${priority}, updated_at = now() WHERE id = ${id}
+  `;
+  revalidatePath("/tasks");
+  revalidatePath("/week");
+}
+
 export async function updateTaskDueDate(id: number, due_date: string | null) {
   await getDb()`
     UPDATE tasks SET due_date = ${due_date || null}, updated_at = now() WHERE id = ${id}

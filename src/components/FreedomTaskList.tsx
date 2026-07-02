@@ -4,7 +4,7 @@ import React, { useState, useTransition } from "react";
 import {
   toggleFreedomTask, deleteFreedomTask, createFreedomTask,
   updateFreedomTaskDescription, updateFreedomTaskCategory,
-  updateFreedomTaskDueDate, updateFreedomTaskSubtasks,
+  updateFreedomTaskDueDate, updateFreedomTaskSubtasks, updateFreedomTaskPriority,
   type FreedomTask, type Subtask,
 } from "@/lib/actions/freedom";
 import { FREEDOM_CATEGORIES, FREEDOM_CATEGORY_STYLES, FREEDOM_COL_ACCENT, type FreedomCategory } from "@/lib/freedomCategories";
@@ -16,11 +16,32 @@ function formatDate(dateStr: string) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-const PRIORITY_STYLES = {
-  high:   "bg-red-100 text-red-600",
-  medium: "bg-yellow-100 text-yellow-700",
-  low:    "bg-gray-100 text-gray-500",
+const PRIORITY_STYLES: Record<"high" | "medium" | "low", string> = {
+  high:   "bg-red-100 text-red-600 hover:bg-red-200",
+  medium: "bg-yellow-100 text-yellow-700 hover:bg-yellow-200",
+  low:    "bg-gray-100 text-gray-500 hover:bg-gray-200",
 };
+
+function PrioritySelect({ taskId, priority, onChange }: {
+  taskId: number;
+  priority: "low" | "medium" | "high";
+  onChange: (id: number, priority: "low" | "medium" | "high") => void;
+}) {
+  return (
+    <select
+      value={priority}
+      onChange={(e) => onChange(taskId, e.target.value as "low" | "medium" | "high")}
+      className={cn(
+        "text-xs px-2 py-0.5 rounded-full font-medium capitalize cursor-pointer focus:outline-none border border-transparent focus:ring-1 focus:ring-indigo-300 transition-colors appearance-none",
+        PRIORITY_STYLES[priority]
+      )}
+    >
+      <option value="high">High</option>
+      <option value="medium">Medium</option>
+      <option value="low">Low</option>
+    </select>
+  );
+}
 
 // ── Subtask components ─────────────────────────────────────────────────────────
 
@@ -234,7 +255,7 @@ function InlineAddTask({ category, onAdd }: { category: FreedomCategory | null; 
 
 // ── Column task card ───────────────────────────────────────────────────────────
 
-function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategoryChange, onDueDateSave, onSubtasksUpdate }: {
+function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategoryChange, onDueDateSave, onSubtasksUpdate, onPriorityChange }: {
   task: FreedomTask;
   onToggle: (id: number) => void;
   onDelete: (id: number) => void;
@@ -242,6 +263,7 @@ function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategor
   onCategoryChange: (id: number, category: FreedomCategory | null) => void;
   onDueDateSave: (id: number, date: string | null) => void;
   onSubtasksUpdate: (id: number, subtasks: Subtask[]) => void;
+  onPriorityChange: (id: number, priority: "low" | "medium" | "high") => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState(task.description ?? "");
@@ -286,14 +308,20 @@ function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategor
           <textarea autoFocus value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={handleBlur}
             placeholder="Add a description…" rows={2}
             className="w-full text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-300 placeholder-gray-300" />
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-gray-400">Category:</span>
-            <select value={task.category ?? ""}
-              onChange={(e) => onCategoryChange(task.id, (e.target.value as FreedomCategory) || null)}
-              className="text-[10px] text-gray-600 bg-white border border-gray-200 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-300">
-              <option value="">Uncategorized</option>
-              {FREEDOM_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-gray-400">Priority:</span>
+              <PrioritySelect taskId={task.id} priority={task.priority} onChange={onPriorityChange} />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-gray-400">Category:</span>
+              <select value={task.category ?? ""}
+                onChange={(e) => onCategoryChange(task.id, (e.target.value as FreedomCategory) || null)}
+                className="text-[10px] text-gray-600 bg-white border border-gray-200 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-300">
+                <option value="">Uncategorized</option>
+                {FREEDOM_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
           </div>
           <SubtaskList taskId={task.id} subtasks={task.subtasks} onUpdate={onSubtasksUpdate} />
         </div>
@@ -304,7 +332,7 @@ function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategor
 
 // ── Category column ────────────────────────────────────────────────────────────
 
-function CategoryColumn({ category, tasks, onToggle, onDelete, onAdd, onDescriptionSave, onCategoryChange, onDueDateSave, onSubtasksUpdate }: {
+function CategoryColumn({ category, tasks, onToggle, onDelete, onAdd, onDescriptionSave, onCategoryChange, onDueDateSave, onSubtasksUpdate, onPriorityChange }: {
   category: FreedomCategory | "Uncategorized";
   tasks: FreedomTask[];
   onToggle: (id: number) => void;
@@ -314,6 +342,7 @@ function CategoryColumn({ category, tasks, onToggle, onDelete, onAdd, onDescript
   onCategoryChange: (id: number, category: FreedomCategory | null) => void;
   onDueDateSave: (id: number, date: string | null) => void;
   onSubtasksUpdate: (id: number, subtasks: Subtask[]) => void;
+  onPriorityChange: (id: number, priority: "low" | "medium" | "high") => void;
 }) {
   const accent = FREEDOM_COL_ACCENT[category];
   const pending = tasks.filter((t) => !t.completed).length;
@@ -329,7 +358,7 @@ function CategoryColumn({ category, tasks, onToggle, onDelete, onAdd, onDescript
         {tasks.filter((t) => !t.completed).map((task) => (
           <ColumnTaskCard key={task.id} task={task} onToggle={onToggle} onDelete={onDelete}
             onDescriptionSave={onDescriptionSave} onCategoryChange={onCategoryChange}
-            onDueDateSave={onDueDateSave} onSubtasksUpdate={onSubtasksUpdate} />
+            onDueDateSave={onDueDateSave} onSubtasksUpdate={onSubtasksUpdate} onPriorityChange={onPriorityChange} />
         ))}
       </div>
       <InlineAddTask category={category === "Uncategorized" ? null : category} onAdd={onAdd} />
@@ -339,7 +368,7 @@ function CategoryColumn({ category, tasks, onToggle, onDelete, onAdd, onDescript
 
 // ── Table row ─────────────────────────────────────────────────────────────────
 
-function TableRow({ task, onToggle, onDelete, onDescriptionSave, onCategoryChange, onDueDateSave, onSubtasksUpdate }: {
+function TableRow({ task, onToggle, onDelete, onDescriptionSave, onCategoryChange, onDueDateSave, onSubtasksUpdate, onPriorityChange }: {
   task: FreedomTask;
   onToggle: (id: number) => void;
   onDelete: (id: number) => void;
@@ -347,6 +376,7 @@ function TableRow({ task, onToggle, onDelete, onDescriptionSave, onCategoryChang
   onCategoryChange: (id: number, category: FreedomCategory | null) => void;
   onDueDateSave: (id: number, date: string | null) => void;
   onSubtasksUpdate: (id: number, subtasks: Subtask[]) => void;
+  onPriorityChange: (id: number, priority: "low" | "medium" | "high") => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState(task.description ?? "");
@@ -388,7 +418,7 @@ function TableRow({ task, onToggle, onDelete, onDescriptionSave, onCategoryChang
           <EditableDueDate taskId={task.id} dueDate={task.due_date} onSave={onDueDateSave} isOverdue={!!isOverdue} />
         </td>
         <td className="py-2.5 px-4">
-          <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium capitalize", PRIORITY_STYLES[task.priority])}>{task.priority}</span>
+          <PrioritySelect taskId={task.id} priority={task.priority} onChange={onPriorityChange} />
         </td>
         <td className="py-2.5 px-4">
           <select value={task.category ?? ""}
@@ -616,6 +646,10 @@ export default function FreedomTaskList({ initialTasks }: { initialTasks: Freedo
   function handleSubtasksUpdate(id: number, subtasks: Subtask[]) {
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, subtasks } : t));
   }
+  function handlePriorityChange(id: number, priority: "low" | "medium" | "high") {
+    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, priority } : t));
+    startTransition(() => updateFreedomTaskPriority(id, priority));
+  }
 
   const tableTasks = tasks
     .filter((t) => tableFilter === "all" ? true : tableFilter === "pending" ? !t.completed : t.completed)
@@ -626,7 +660,7 @@ export default function FreedomTaskList({ initialTasks }: { initialTasks: Freedo
     });
 
   const hasUncategorized = tasks.some((t) => !t.category);
-  const sharedProps = { onToggle: handleToggle, onDelete: handleDelete, onDescriptionSave: handleDescriptionSave, onCategoryChange: handleCategoryChange, onDueDateSave: handleDueDateSave, onSubtasksUpdate: handleSubtasksUpdate };
+  const sharedProps = { onToggle: handleToggle, onDelete: handleDelete, onDescriptionSave: handleDescriptionSave, onCategoryChange: handleCategoryChange, onDueDateSave: handleDueDateSave, onSubtasksUpdate: handleSubtasksUpdate, onPriorityChange: handlePriorityChange };
 
   return (
     <div className="space-y-8">

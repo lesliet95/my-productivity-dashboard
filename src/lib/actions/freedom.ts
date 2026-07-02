@@ -72,6 +72,11 @@ export async function updateFreedomTaskCategory(id: number, category: FreedomCat
   revalidatePath("/freedom");
 }
 
+export async function updateFreedomTaskPriority(id: number, priority: "low" | "medium" | "high") {
+  await getDb()`UPDATE tasks SET priority = ${priority}, updated_at = now() WHERE id = ${id}`;
+  revalidatePath("/freedom");
+}
+
 export async function updateFreedomTaskDueDate(id: number, due_date: string | null) {
   await getDb()`UPDATE tasks SET due_date = ${due_date || null}, updated_at = now() WHERE id = ${id}`;
   revalidatePath("/freedom");
