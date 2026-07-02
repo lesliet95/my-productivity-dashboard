@@ -62,6 +62,11 @@ export async function deleteFreedomTask(id: number) {
   revalidatePath("/freedom");
 }
 
+export async function updateFreedomTaskTitle(id: number, title: string) {
+  await getDb()`UPDATE tasks SET title = ${title}, updated_at = now() WHERE id = ${id}`;
+  revalidatePath("/freedom");
+}
+
 export async function updateFreedomTaskDescription(id: number, description: string) {
   await getDb()`UPDATE tasks SET description = ${description || null}, updated_at = now() WHERE id = ${id}`;
   revalidatePath("/freedom");
