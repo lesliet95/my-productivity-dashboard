@@ -13,8 +13,8 @@ export default function FreedomCountdown() {
   const [, setTick] = useState(0);
   useEffect(() => { setTick(1); }, []);
 
-  const quitDays = daysUntil("2025-08-17");
-  const lastDays = daysUntil("2025-08-31");
+  const quitDays = daysUntil("2026-08-17");
+  const lastDays = daysUntil("2026-08-31");
 
   return (
     <div className="mb-10 pt-4 pb-8 border-b border-gray-100">
@@ -26,7 +26,7 @@ export default function FreedomCountdown() {
         {quitDays}
       </p>
       <p className="text-2xl font-bold text-gray-700 text-center mt-2">
-        August 17, 2025 — Quit Date
+        August 17, 2026 — Quit Date
       </p>
 
       {/* Secondary: last day */}
@@ -34,7 +34,7 @@ export default function FreedomCountdown() {
         <div className="text-center">
           <p className="text-xs text-gray-400 uppercase tracking-widest mb-0.5">last day</p>
           <p className="text-4xl font-bold text-indigo-500 tabular-nums">{lastDays}</p>
-          <p className="text-sm text-gray-500 mt-0.5">days · Aug 31, 2025</p>
+          <p className="text-sm text-gray-500 mt-0.5">days · Aug 31, 2026</p>
         </div>
       </div>
     </div>
