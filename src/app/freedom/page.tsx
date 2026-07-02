@@ -10,7 +10,7 @@ export default async function FreedomPage() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <FreedomCountdown quitDate="2025-08-17" />
+      <FreedomCountdown />
       <div className="mb-6">
         <p className="text-sm text-gray-500">
           {completed} of {tasks.length} tasks completed

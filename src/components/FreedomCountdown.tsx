@@ -2,48 +2,41 @@
 
 import { useEffect, useState } from "react";
 
-export default function FreedomCountdown({ quitDate }: { quitDate: string }) {
-  const [daysLeft, setDaysLeft] = useState<number | null>(null);
+function daysUntil(dateStr: string) {
+  const target = new Date(dateStr + "T00:00:00");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
 
-  useEffect(() => {
-    function calc() {
-      const target = new Date(quitDate + "T00:00:00");
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const diff = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-      setDaysLeft(diff);
-    }
-    calc();
-  }, [quitDate]);
+export default function FreedomCountdown() {
+  const [, setTick] = useState(0);
+  useEffect(() => { setTick(1); }, []);
 
-  const formattedDate = new Date(quitDate + "T00:00:00").toLocaleDateString("en-US", {
-    month: "long", day: "numeric", year: "numeric",
-  });
-
-  const isPast = daysLeft !== null && daysLeft < 0;
-  const isToday = daysLeft === 0;
+  const quitDays = daysUntil("2025-08-17");
+  const lastDays = daysUntil("2025-08-31");
 
   return (
-    <div className="mb-8 py-8 text-center">
-      <p className="text-sm font-semibold text-indigo-400 uppercase tracking-widest mb-2">
-        {isPast ? "Freedom achieved" : isToday ? "Today is the day" : "Days until freedom"}
+    <div className="mb-10 pt-4 pb-8 border-b border-gray-100">
+      {/* Main countdown */}
+      <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest text-center mb-1">
+        days until freedom
       </p>
-      {!isPast && !isToday && daysLeft !== null && (
-        <p className="text-8xl font-black text-gray-900 leading-none mb-3">
-          {daysLeft}
-        </p>
-      )}
-      {isToday && (
-        <p className="text-6xl font-black text-indigo-600 leading-none mb-3">🎉</p>
-      )}
-      <p className="text-2xl font-bold text-gray-700">
-        {isPast ? formattedDate : `August 17, 2025`}
+      <p className="text-[7rem] font-black text-gray-900 leading-none text-center tabular-nums">
+        {quitDays}
       </p>
-      {!isPast && !isToday && (
-        <p className="text-sm text-gray-400 mt-1">
-          {formattedDate}
-        </p>
-      )}
+      <p className="text-2xl font-bold text-gray-700 text-center mt-2">
+        August 17, 2025 — Quit Date
+      </p>
+
+      {/* Secondary: last day */}
+      <div className="flex items-center justify-center gap-3 mt-5">
+        <div className="text-center">
+          <p className="text-xs text-gray-400 uppercase tracking-widest mb-0.5">last day</p>
+          <p className="text-4xl font-bold text-indigo-500 tabular-nums">{lastDays}</p>
+          <p className="text-sm text-gray-500 mt-0.5">days · Aug 31, 2025</p>
+        </div>
+      </div>
     </div>
   );
 }
