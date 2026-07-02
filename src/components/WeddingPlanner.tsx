@@ -273,7 +273,12 @@ function TaskRow({
               </span>
             )}
             {subtasks.length > 0 && (
-              <span className="text-[10px] text-gray-400 shrink-0">{doneCount}/{subtasks.length}</span>
+              <span className={cn(
+                "inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0",
+                doneCount === subtasks.length ? "bg-rose-100 text-rose-500" : "bg-slate-100 text-slate-500"
+              )}>
+                <ListChecks size={9} />{doneCount}/{subtasks.length}
+              </span>
             )}
             <button onClick={() => setExpanded((v) => !v)}
               className="shrink-0 text-gray-300 hover:text-gray-500 transition-colors opacity-0 group-hover:opacity-100">

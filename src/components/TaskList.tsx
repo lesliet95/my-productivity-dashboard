@@ -7,7 +7,7 @@ import {
   type Task, type Subtask,
 } from "@/lib/actions/tasks";
 import { TASK_CATEGORIES, CATEGORY_STYLES, type TaskCategory } from "@/lib/taskCategories";
-import { Plus, Trash2, ChevronDown, Calendar, LayoutGrid, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { Plus, Trash2, ChevronDown, Calendar, LayoutGrid, ChevronLeft, ChevronRight, Check, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -286,7 +286,12 @@ function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategor
           <div className="flex items-center gap-2 mt-0.5">
             <EditableDueDate taskId={task.id} dueDate={task.due_date} onSave={onDueDateSave} />
             {subtasksTotal > 0 && (
-              <span className="text-[10px] text-gray-400">{subtasksDone}/{subtasksTotal}</span>
+              <span className={cn(
+                "inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full",
+                subtasksDone === subtasksTotal ? "bg-indigo-100 text-indigo-600" : "bg-slate-100 text-slate-500"
+              )}>
+                <ListChecks size={9} />{subtasksDone}/{subtasksTotal}
+              </span>
             )}
           </div>
         </div>
@@ -396,7 +401,12 @@ function TableRow({ task, onToggle, onDelete, onDescriptionSave, onCategoryChang
                 {task.title}
               </span>
               {subtasksTotal > 0 && (
-                <span className="ml-2 text-[10px] text-gray-400">{subtasksDone}/{subtasksTotal} subtasks</span>
+                <span className={cn(
+                  "inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full ml-1",
+                  subtasksDone === subtasksTotal ? "bg-indigo-100 text-indigo-600" : "bg-slate-100 text-slate-500"
+                )}>
+                  <ListChecks size={9} />{subtasksDone}/{subtasksTotal}
+                </span>
               )}
             </div>
           </div>
