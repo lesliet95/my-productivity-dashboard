@@ -148,6 +148,7 @@ export default function WeekView({
       priority: "medium",
       due_date: dueDate,
       category: null,
+      subtasks: [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

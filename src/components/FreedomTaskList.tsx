@@ -1,9 +1,14 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
-import { toggleFreedomTask, deleteFreedomTask, createFreedomTask, updateFreedomTaskDescription, updateFreedomTaskCategory, type FreedomTask } from "@/lib/actions/freedom";
+import {
+  toggleFreedomTask, deleteFreedomTask, createFreedomTask,
+  updateFreedomTaskDescription, updateFreedomTaskCategory,
+  updateFreedomTaskDueDate, updateFreedomTaskSubtasks,
+  type FreedomTask, type Subtask,
+} from "@/lib/actions/freedom";
 import { FREEDOM_CATEGORIES, FREEDOM_CATEGORY_STYLES, FREEDOM_COL_ACCENT, type FreedomCategory } from "@/lib/freedomCategories";
-import { Plus, Trash2, ChevronDown, Calendar, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Trash2, ChevronDown, Calendar, LayoutGrid, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function formatDate(dateStr: string) {
@@ -16,6 +21,157 @@ const PRIORITY_STYLES = {
   medium: "bg-yellow-100 text-yellow-700",
   low:    "bg-gray-100 text-gray-500",
 };
+
+// ── Subtask components ─────────────────────────────────────────────────────────
+
+function SubtaskRow({ subtask, onToggle, onDelete, onEdit }: {
+  subtask: Subtask;
+  onToggle: () => void;
+  onDelete: () => void;
+  onEdit: (title: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(subtask.title);
+  const draftRef = React.useRef(draft);
+  draftRef.current = draft;
+
+  function handleBlur() {
+    const val = draftRef.current.trim();
+    if (val && val !== subtask.title) onEdit(val);
+    else setDraft(subtask.title);
+    setEditing(false);
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 group/sub py-0.5">
+      <button
+        onClick={onToggle}
+        className={cn(
+          "w-3.5 h-3.5 rounded border shrink-0 flex items-center justify-center transition-colors",
+          subtask.completed ? "bg-indigo-500 border-indigo-500 text-white" : "border-gray-300 hover:border-indigo-400"
+        )}
+      >
+        {subtask.completed && <Check size={9} />}
+      </button>
+      {editing ? (
+        <input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={handleBlur}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.currentTarget.blur(); } if (e.key === "Escape") { setDraft(subtask.title); setEditing(false); } }}
+          className="flex-1 text-[11px] bg-white border border-indigo-300 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-300"
+        />
+      ) : (
+        <span
+          onClick={() => setEditing(true)}
+          className={cn("flex-1 text-[11px] cursor-pointer hover:text-indigo-600 transition-colors", subtask.completed ? "line-through text-gray-400" : "text-gray-600")}
+        >
+          {subtask.title}
+        </span>
+      )}
+      <button
+        onClick={onDelete}
+        className="opacity-0 group-hover/sub:opacity-100 text-gray-300 hover:text-red-400 transition-all shrink-0"
+      >
+        <Trash2 size={10} />
+      </button>
+    </div>
+  );
+}
+
+function SubtaskList({ taskId, subtasks, onUpdate }: {
+  taskId: number;
+  subtasks: Subtask[];
+  onUpdate: (id: number, subtasks: Subtask[]) => void;
+}) {
+  const [, startTransition] = useTransition();
+  const [newTitle, setNewTitle] = useState("");
+
+  function save(next: Subtask[]) {
+    onUpdate(taskId, next);
+    startTransition(async () => { await updateFreedomTaskSubtasks(taskId, next); });
+  }
+
+  function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newTitle.trim()) return;
+    const next = [...subtasks, { id: `s${Date.now()}`, title: newTitle.trim(), completed: false }];
+    save(next);
+    setNewTitle("");
+  }
+
+  return (
+    <div className="space-y-0.5 mt-1">
+      {subtasks.map((s) => (
+        <SubtaskRow
+          key={s.id}
+          subtask={s}
+          onToggle={() => save(subtasks.map((x) => x.id === s.id ? { ...x, completed: !x.completed } : x))}
+          onDelete={() => save(subtasks.filter((x) => x.id !== s.id))}
+          onEdit={(title) => save(subtasks.map((x) => x.id === s.id ? { ...x, title } : x))}
+        />
+      ))}
+      <form onSubmit={handleAdd} className="flex items-center gap-1 pt-0.5">
+        <Plus size={10} className="text-gray-300 shrink-0" />
+        <input
+          value={newTitle}
+          onChange={(e) => setNewTitle(e.target.value)}
+          placeholder="Add subtask…"
+          className="flex-1 text-[11px] text-gray-500 bg-transparent placeholder-gray-300 focus:outline-none"
+        />
+        {newTitle.trim() && (
+          <button type="submit" className="text-[10px] text-indigo-500 hover:text-indigo-700 font-medium">Add</button>
+        )}
+      </form>
+    </div>
+  );
+}
+
+// ── Editable due date ──────────────────────────────────────────────────────────
+
+function EditableDueDate({ taskId, dueDate, onSave, isOverdue }: {
+  taskId: number;
+  dueDate: string | null;
+  onSave: (id: number, date: string | null) => void;
+  isOverdue?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [, startTransition] = useTransition();
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value || null;
+    onSave(taskId, val);
+    startTransition(async () => { await updateFreedomTaskDueDate(taskId, val); });
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <input
+        type="date"
+        autoFocus
+        defaultValue={dueDate ?? ""}
+        onChange={handleChange}
+        onBlur={() => setEditing(false)}
+        className="text-xs border border-indigo-300 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-300"
+      />
+    );
+  }
+
+  return (
+    <button
+      onClick={() => setEditing(true)}
+      className={cn(
+        "text-xs flex items-center gap-1 hover:underline transition-colors",
+        isOverdue ? "text-red-500 font-medium" : dueDate ? "text-gray-400" : "text-gray-300 hover:text-gray-500"
+      )}
+    >
+      <Calendar size={11} />
+      {dueDate ? formatDate(dueDate) : "Set date"}
+    </button>
+  );
+}
 
 // ── Inline add form ────────────────────────────────────────────────────────────
 
@@ -36,7 +192,7 @@ function InlineAddTask({ category, onAdd }: { category: FreedomCategory | null; 
     onAdd({
       id: Date.now(), title: title.trim(), description: null,
       completed: false, priority, due_date: dueDate || null,
-      category, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      category, subtasks: [], created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     });
     setTitle(""); setDueDate(""); setPriority("medium"); setOpen(false); setLoading(false);
   }
@@ -78,17 +234,21 @@ function InlineAddTask({ category, onAdd }: { category: FreedomCategory | null; 
 
 // ── Column task card ───────────────────────────────────────────────────────────
 
-function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategoryChange }: {
+function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategoryChange, onDueDateSave, onSubtasksUpdate }: {
   task: FreedomTask;
   onToggle: (id: number) => void;
   onDelete: (id: number) => void;
   onDescriptionSave: (id: number, desc: string) => void;
   onCategoryChange: (id: number, category: FreedomCategory | null) => void;
+  onDueDateSave: (id: number, date: string | null) => void;
+  onSubtasksUpdate: (id: number, subtasks: Subtask[]) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState(task.description ?? "");
   const draftRef = React.useRef(draft);
   draftRef.current = draft;
+  const subtasksDone = task.subtasks.filter((s) => s.completed).length;
+  const subtasksTotal = task.subtasks.length;
 
   function handleBlur() {
     if (draftRef.current !== (task.description ?? "")) onDescriptionSave(task.id, draftRef.current);
@@ -104,7 +264,12 @@ function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategor
             className="text-xs font-medium text-gray-800 leading-snug text-left w-full hover:text-indigo-600 transition-colors">
             {task.title}
           </button>
-          {task.due_date && <p className="text-[10px] text-gray-400 mt-0.5">{formatDate(task.due_date)}</p>}
+          <div className="flex items-center gap-2 mt-0.5">
+            <EditableDueDate taskId={task.id} dueDate={task.due_date} onSave={onDueDateSave} />
+            {subtasksTotal > 0 && (
+              <span className="text-[10px] text-gray-400">{subtasksDone}/{subtasksTotal}</span>
+            )}
+          </div>
         </div>
         <button onClick={() => onDelete(task.id)}
           className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all shrink-0 mt-0.5">
@@ -125,6 +290,7 @@ function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategor
               {FREEDOM_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
+          <SubtaskList taskId={task.id} subtasks={task.subtasks} onUpdate={onSubtasksUpdate} />
         </div>
       )}
     </div>
@@ -133,7 +299,7 @@ function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategor
 
 // ── Category column ────────────────────────────────────────────────────────────
 
-function CategoryColumn({ category, tasks, onToggle, onDelete, onAdd, onDescriptionSave, onCategoryChange }: {
+function CategoryColumn({ category, tasks, onToggle, onDelete, onAdd, onDescriptionSave, onCategoryChange, onDueDateSave, onSubtasksUpdate }: {
   category: FreedomCategory | "Uncategorized";
   tasks: FreedomTask[];
   onToggle: (id: number) => void;
@@ -141,6 +307,8 @@ function CategoryColumn({ category, tasks, onToggle, onDelete, onAdd, onDescript
   onAdd: (t: FreedomTask) => void;
   onDescriptionSave: (id: number, desc: string) => void;
   onCategoryChange: (id: number, category: FreedomCategory | null) => void;
+  onDueDateSave: (id: number, date: string | null) => void;
+  onSubtasksUpdate: (id: number, subtasks: Subtask[]) => void;
 }) {
   const accent = FREEDOM_COL_ACCENT[category];
   const pending = tasks.filter((t) => !t.completed).length;
@@ -155,7 +323,8 @@ function CategoryColumn({ category, tasks, onToggle, onDelete, onAdd, onDescript
       <div className="flex-1 p-2 space-y-1 min-h-[72px]">
         {tasks.filter((t) => !t.completed).map((task) => (
           <ColumnTaskCard key={task.id} task={task} onToggle={onToggle} onDelete={onDelete}
-            onDescriptionSave={onDescriptionSave} onCategoryChange={onCategoryChange} />
+            onDescriptionSave={onDescriptionSave} onCategoryChange={onCategoryChange}
+            onDueDateSave={onDueDateSave} onSubtasksUpdate={onSubtasksUpdate} />
         ))}
       </div>
       <InlineAddTask category={category === "Uncategorized" ? null : category} onAdd={onAdd} />
@@ -165,18 +334,22 @@ function CategoryColumn({ category, tasks, onToggle, onDelete, onAdd, onDescript
 
 // ── Table row ─────────────────────────────────────────────────────────────────
 
-function TableRow({ task, onToggle, onDelete, onDescriptionSave, onCategoryChange }: {
+function TableRow({ task, onToggle, onDelete, onDescriptionSave, onCategoryChange, onDueDateSave, onSubtasksUpdate }: {
   task: FreedomTask;
   onToggle: (id: number) => void;
   onDelete: (id: number) => void;
   onDescriptionSave: (id: number, desc: string) => void;
   onCategoryChange: (id: number, category: FreedomCategory | null) => void;
+  onDueDateSave: (id: number, date: string | null) => void;
+  onSubtasksUpdate: (id: number, subtasks: Subtask[]) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState(task.description ?? "");
   const draftRef = React.useRef(draft);
   draftRef.current = draft;
   const isOverdue = !task.completed && task.due_date && task.due_date < new Date().toISOString().slice(0, 10);
+  const subtasksDone = task.subtasks.filter((s) => s.completed).length;
+  const subtasksTotal = task.subtasks.length;
 
   function handleDescBlur() {
     if (draftRef.current !== (task.description ?? "")) onDescriptionSave(task.id, draftRef.current);
@@ -190,16 +363,19 @@ function TableRow({ task, onToggle, onDelete, onDescriptionSave, onCategoryChang
             <button onClick={() => setExpanded((v) => !v)} className="text-gray-400 hover:text-indigo-500 shrink-0 transition-colors">
               <ChevronDown size={13} className={cn("transition-transform", expanded && "rotate-180")} />
             </button>
-            <span className={cn("text-sm font-medium cursor-pointer hover:text-indigo-600 transition-colors", task.completed && "line-through text-gray-400")}
-              onClick={() => setExpanded((v) => !v)}>
-              {task.title}
-            </span>
+            <div>
+              <span className={cn("text-sm font-medium cursor-pointer hover:text-indigo-600 transition-colors", task.completed && "line-through text-gray-400")}
+                onClick={() => setExpanded((v) => !v)}>
+                {task.title}
+              </span>
+              {subtasksTotal > 0 && (
+                <span className="ml-2 text-[10px] text-gray-400">{subtasksDone}/{subtasksTotal} subtasks</span>
+              )}
+            </div>
           </div>
         </td>
         <td className="py-2.5 px-4 text-xs whitespace-nowrap">
-          {task.due_date
-            ? <span className={cn("flex items-center gap-1", isOverdue ? "text-red-500 font-medium" : "text-gray-400")}><Calendar size={11} />{formatDate(task.due_date)}</span>
-            : <span className="text-gray-300">—</span>}
+          <EditableDueDate taskId={task.id} dueDate={task.due_date} onSave={onDueDateSave} isOverdue={!!isOverdue} />
         </td>
         <td className="py-2.5 px-4">
           <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium capitalize", PRIORITY_STYLES[task.priority])}>{task.priority}</span>
@@ -242,6 +418,10 @@ function TableRow({ task, onToggle, onDelete, onDescriptionSave, onCategoryChang
                   {FREEDOM_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
+              <div>
+                <p className="text-[11px] font-semibold text-gray-400 mb-1 uppercase tracking-wide">Subtasks</p>
+                <SubtaskList taskId={task.id} subtasks={task.subtasks} onUpdate={onSubtasksUpdate} />
+              </div>
             </div>
           </td>
         </tr>
@@ -270,6 +450,7 @@ function AddTableRow({ onAdd, onCancel }: { onAdd: (t: FreedomTask) => void; onC
       id: Date.now(), title: title.trim(), description: null,
       completed: false, priority, due_date: dueDate || null,
       category: (category || null) as FreedomTask["category"],
+      subtasks: [],
       created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     });
   }
@@ -419,6 +600,12 @@ export default function FreedomTaskList({ initialTasks }: { initialTasks: Freedo
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, category } : t));
     startTransition(() => updateFreedomTaskCategory(id, category));
   }
+  function handleDueDateSave(id: number, due_date: string | null) {
+    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, due_date } : t));
+  }
+  function handleSubtasksUpdate(id: number, subtasks: Subtask[]) {
+    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, subtasks } : t));
+  }
 
   const tableTasks = tasks
     .filter((t) => tableFilter === "all" ? true : tableFilter === "pending" ? !t.completed : t.completed)
@@ -429,10 +616,10 @@ export default function FreedomTaskList({ initialTasks }: { initialTasks: Freedo
     });
 
   const hasUncategorized = tasks.some((t) => !t.category);
+  const sharedProps = { onToggle: handleToggle, onDelete: handleDelete, onDescriptionSave: handleDescriptionSave, onCategoryChange: handleCategoryChange, onDueDateSave: handleDueDateSave, onSubtasksUpdate: handleSubtasksUpdate };
 
   return (
     <div className="space-y-8">
-      {/* Category columns */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
@@ -458,16 +645,14 @@ export default function FreedomTaskList({ initialTasks }: { initialTasks: Freedo
               {FREEDOM_CATEGORIES.map((cat) => (
                 <CategoryColumn key={cat} category={cat}
                   tasks={tasks.filter((t) => t.category === cat)}
-                  onToggle={handleToggle} onDelete={handleDelete} onAdd={handleAdd}
-                  onDescriptionSave={handleDescriptionSave} onCategoryChange={handleCategoryChange} />
+                  onAdd={handleAdd} {...sharedProps} />
               ))}
             </div>
             {hasUncategorized && (
               <div className="mt-3 max-w-[280px]">
                 <CategoryColumn category="Uncategorized"
                   tasks={tasks.filter((t) => !t.category)}
-                  onToggle={handleToggle} onDelete={handleDelete} onAdd={handleAdd}
-                  onDescriptionSave={handleDescriptionSave} onCategoryChange={handleCategoryChange} />
+                  onAdd={handleAdd} {...sharedProps} />
               </div>
             )}
           </>
@@ -476,7 +661,6 @@ export default function FreedomTaskList({ initialTasks }: { initialTasks: Freedo
         )}
       </div>
 
-      {/* To-Do table */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">To-Do List</h2>
@@ -516,10 +700,7 @@ export default function FreedomTaskList({ initialTasks }: { initialTasks: Freedo
               {tableTasks.length === 0 && !showAddRow ? (
                 <tr><td colSpan={6} className="text-center py-12 text-sm text-gray-400">No tasks — click New to add one</td></tr>
               ) : (
-                tableTasks.map((t) => (
-                  <TableRow key={t.id} task={t} onToggle={handleToggle} onDelete={handleDelete}
-                    onDescriptionSave={handleDescriptionSave} onCategoryChange={handleCategoryChange} />
-                ))
+                tableTasks.map((t) => <TableRow key={t.id} task={t} {...sharedProps} />)
               )}
             </tbody>
           </table>
