@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import type { CardBenefitData, BenefitValue, BenefitRow } from "@/lib/types/cards";
 import { calcCardMath } from "@/lib/types/cards";
 import { saveCards } from "@/lib/actions/cards";
-import { CreditCard, Pencil, Check } from "lucide-react";
+import { CreditCard, Zap, Pencil, Check } from "lucide-react";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -116,11 +116,78 @@ function EditableCell({
   );
 }
 
+// ── Points earning rates ───────────────────────────────────────────────────────
+
+interface PointsCategory { category: string; multiplier: string; note?: string; }
+
+const POINTS_RATES: Record<string, PointsCategory[]> = {
+  "chase-sapphire-reserve": [
+    { category: "Hotels & Car Rentals",   multiplier: "10x", note: "Through Chase Travel portal" },
+    { category: "Chase Dining",           multiplier: "10x", note: "Through Chase Dining" },
+    { category: "Lyft",                   multiplier: "10x", note: "Through Mar 2025" },
+    { category: "Flights",                multiplier: "5x",  note: "Through Chase Travel portal" },
+    { category: "Dining",                 multiplier: "3x",  note: "Restaurants worldwide" },
+    { category: "Travel",                 multiplier: "3x",  note: "Flights, hotels, transit, rideshare booked directly" },
+    { category: "Everything else",        multiplier: "1x" },
+  ],
+  "amex-business-platinum": [
+    { category: "Flights (Amex Travel)",        multiplier: "5x",   note: "Prepaid flights booked through Amex Travel" },
+    { category: "Prepaid Hotels (Amex Travel)", multiplier: "5x",   note: "Prepaid hotels booked through Amex Travel" },
+    { category: "Large Purchases ($5K+)",       multiplier: "1.5x", note: "U.S. purchases of $5,000+" },
+    { category: "Construction & Hardware",      multiplier: "1.5x", note: "U.S. merchants" },
+    { category: "Electronics/Software",         multiplier: "1.5x", note: "U.S. merchants" },
+    { category: "Shipping",                     multiplier: "1.5x", note: "U.S. merchants" },
+    { category: "Advertising (select media)",   multiplier: "1.5x", note: "Up to $2M/year" },
+    { category: "Everything else",              multiplier: "1x" },
+  ],
+};
+
+const MULTIPLIER_COLOR: Record<string, string> = {
+  "10x": "bg-emerald-100 text-emerald-700",
+  "5x":  "bg-blue-100 text-blue-700",
+  "3x":  "bg-indigo-100 text-indigo-700",
+  "1.5x":"bg-amber-100 text-amber-700",
+  "1x":  "bg-gray-100 text-gray-500",
+};
+
+function PointsView({ cardId }: { cardId: string }) {
+  const rates = POINTS_RATES[cardId] ?? [];
+  if (!rates.length) return <p className="text-gray-400 text-sm py-8 text-center">No points data for this card yet.</p>;
+
+  return (
+    <div className="rounded-xl border border-gray-200 overflow-hidden">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-gray-50 border-b border-gray-200">
+            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/3">Category</th>
+            <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Points</th>
+            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Notes</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {rates.map((r, i) => (
+            <tr key={i} className="hover:bg-gray-50 transition-colors">
+              <td className="px-5 py-3.5 font-medium text-gray-800">{r.category}</td>
+              <td className="px-5 py-3.5 text-center">
+                <span className={cn("inline-block px-2.5 py-0.5 rounded-full text-xs font-bold", MULTIPLIER_COLOR[r.multiplier] ?? "bg-gray-100 text-gray-600")}>
+                  {r.multiplier}
+                </span>
+              </td>
+              <td className="px-5 py-3.5 text-gray-500 text-xs">{r.note ?? "—"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function CardBenefits({ cards: initial }: { cards: CardBenefitData[] }) {
   const [cards, setCards] = useState(initial);
   const [activeId, setActiveId] = useState(initial[0]?.id ?? "");
+  const [activeTab, setActiveTab] = useState<"benefits" | "points">("benefits");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const card = cards.find((c) => c.id === activeId) ?? cards[0];
@@ -185,7 +252,31 @@ export default function CardBenefits({ cards: initial }: { cards: CardBenefitDat
         ))}
       </div>
 
-      {/* Card table */}
+      {/* Tab bar */}
+      <div className="flex gap-0.5 bg-gray-100 p-0.5 rounded-lg w-fit">
+        <button
+          onClick={() => setActiveTab("benefits")}
+          className={cn(
+            "flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
+            activeTab === "benefits" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"
+          )}
+        >
+          <CreditCard size={13} /> Benefits
+        </button>
+        <button
+          onClick={() => setActiveTab("points")}
+          className={cn(
+            "flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
+            activeTab === "points" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"
+          )}
+        >
+          <Zap size={13} /> Points
+        </button>
+      </div>
+
+      {activeTab === "points" && <PointsView cardId={card.id} />}
+
+      {activeTab === "benefits" && (<>
       <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
 
         {/* Header */}
@@ -366,6 +457,7 @@ export default function CardBenefits({ cards: initial }: { cards: CardBenefitDat
           </div>
         )}
       </div>
+      </>)}
     </div>
   );
 }
