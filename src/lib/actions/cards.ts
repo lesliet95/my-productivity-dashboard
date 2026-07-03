@@ -105,53 +105,73 @@ const DEFAULT_CARDS: CardBenefitData[] = [
   {
     id: "amex-business-platinum",
     name: "Amex Business Platinum Card®",
-    annualFee: 695,
+    annualFee: 895,
     tagline: "ANNUAL FEE ANALYSIS — 2026",
     accentColor: "amber",
     benefits: [
       {
-        id: "airline-fee",
-        benefit: "$200 Airline Fee Credit",
-        maxValue: 200,
-        organic: { notes: "Select one airline — incidental fees (bags, seat upgrades)", value: "TBD", icon: "hourglass" },
+        id: "hotel-credit",
+        benefit: "$600 Hotel Credit",
+        subtitle: "$300 Jan–Jun · $300 Jul–Dec",
+        maxValue: 600,
+        organic: { notes: "Fine Hotels + Resorts (no min stay) or The Hotel Collection (2-night min) via Amex Travel", value: "TBD", icon: "hourglass" },
       },
       {
-        id: "hotel-credit",
-        benefit: "$200 Fine Hotels + Resorts Credit",
-        maxValue: 200,
-        organic: { notes: "Booked through Amex Travel — plan to redirect a trip", value: "TBD", icon: "hourglass" },
+        id: "chatgpt",
+        benefit: "$300 ChatGPT Business Credit",
+        maxValue: 300,
+        organic: { notes: "Statement credit toward ChatGPT Business subscription", value: "TBD", icon: "hourglass" },
+      },
+      {
+        id: "indeed",
+        benefit: "$360 Indeed Credit",
+        subtitle: "$90 quarterly",
+        maxValue: 360,
+        organic: { notes: "Quarterly credit on Indeed hiring spend", value: "TBD", icon: "hourglass" },
       },
       {
         id: "dell-credits",
-        benefit: "$400 Dell Credits",
-        subtitle: "$200 Jan–Jun · $200 Jul–Dec",
-        maxValue: 400,
-        organic: { notes: "Active business use — hardware & accessories", value: "TBD", icon: "hourglass" },
+        benefit: "$1,150 Dell Credits",
+        subtitle: "$150 upfront + $1,000 after $5K spend",
+        maxValue: 1150,
+        organic: { notes: "$150 on any Dell purchase + $1,000 after spending $5,000 at Dell", value: "TBD", icon: "hourglass" },
       },
       {
         id: "adobe",
-        benefit: "$150 Adobe Credit",
-        maxValue: 150,
-        organic: { notes: "Already using Adobe CC — offsets existing subscription", value: 150 },
+        benefit: "$250 Adobe Credit",
+        maxValue: 250,
+        organic: { notes: "Already using Adobe CC — offsets existing subscription", value: 250 },
+      },
+      {
+        id: "airline-fee",
+        benefit: "$200 Airline Fee Credit",
+        maxValue: 200,
+        organic: { notes: "Select one airline — incidental fees (bags, seat upgrades, lounge day passes)", value: "TBD", icon: "hourglass" },
+      },
+      {
+        id: "hilton-credit",
+        benefit: "$200 Hilton Property Credit",
+        maxValue: 200,
+        organic: { notes: "Hilton for Business members — eligible purchases at Hilton properties", value: "TBD", icon: "hourglass" },
       },
       {
         id: "clear",
-        benefit: "$189 CLEAR Plus Credit",
-        maxValue: 189,
-        organic: { notes: "CLEAR already used at airports regularly", value: 189 },
+        benefit: "$209 CLEAR Plus Credit",
+        maxValue: 209,
+        organic: { notes: "CLEAR already used at airports regularly", value: 209 },
       },
       {
-        id: "digital",
-        benefit: "$240 Digital Entertainment Credit",
-        subtitle: "$20/mo — eligible services",
-        maxValue: 240,
-        organic: { notes: "Using eligible streaming services monthly", value: 240 },
+        id: "wireless",
+        benefit: "$120 Wireless Phone Credit",
+        subtitle: "$10/mo",
+        maxValue: 120,
+        organic: { notes: "Statement credit on U.S. wireless phone service purchases", value: "TBD", icon: "hourglass" },
       },
       {
         id: "global-entry",
         benefit: "Global Entry / TSA PreCheck Credit",
         maxValue: 120,
-        organic: { notes: "Used for renewal", value: 120 },
+        organic: { notes: "$120 Global Entry or $85 TSA PreCheck — every 4–4.5 years", value: 120 },
       },
       {
         id: "centurion",
@@ -161,29 +181,37 @@ const DEFAULT_CARDS: CardBenefitData[] = [
         footnote: "Calculation: 6 visits x $50 estimated day-pass value = $300",
       },
       {
+        id: "delta-skyclub",
+        benefit: "10 Delta Sky Club Visits/yr",
+        maxValue: "Soft",
+        nonOrganic: { notes: "Unlimited visits after $75K annual spend; ~$50/visit value", value: "Soft", icon: "hourglass" },
+      },
+      {
         id: "priority-pass",
         benefit: "Priority Pass Select",
         maxValue: "Unlimited",
         nonOrganic: { notes: "Backup to Centurion at non-Amex airports", value: "~$100", icon: "hourglass" },
       },
       {
-        id: "points-35",
-        benefit: "35% Points Back on Flights",
-        subtitle: "Up to 500,000 pts/yr",
+        id: "hotel-status",
+        benefit: "Hotel & Rental Status",
+        subtitle: "Marriott Gold · Hilton Gold · Avis+ · Hertz President's Circle · National Executive",
         maxValue: "Soft",
-        organic: { notes: "Used on business travel — significant point recovery", value: "Soft" },
+        nonOrganic: { notes: "Automatic mid-tier hotel status + top-tier car rental status", value: "Soft" },
       },
       {
-        id: "hotel-status",
-        benefit: "Marriott Bonvoy Gold / Hilton Gold",
+        id: "cell-insurance",
+        benefit: "Cell Phone Insurance",
+        subtitle: "Up to $800/claim · 2 claims/yr",
         maxValue: "Soft",
-        nonOrganic: { notes: "Automatic mid-tier status — upgrades & breakfast", value: "Soft" },
+        organic: { notes: "Up to $1,600/yr — pay phone bill with the card to activate", value: "Soft" },
       },
       {
         id: "purchase-protection",
-        benefit: "Purchase & Extended Warranty",
+        benefit: "Purchase & Travel Protections",
+        subtitle: "Purchase protection · Extended warranty · Trip delay/cancellation",
         maxValue: "Soft",
-        organic: { notes: "Passive coverage on business purchases", value: "Soft" },
+        organic: { notes: "Up to $10K/item purchase protection; $10K/trip cancellation; $500 trip delay", value: "Soft" },
       },
     ],
   },
@@ -192,7 +220,12 @@ const DEFAULT_CARDS: CardBenefitData[] = [
 export async function getCards(): Promise<CardBenefitData[]> {
   const cards = await getData<CardBenefitData[]>("cards_v1", DEFAULT_CARDS);
   // Migrate: move Apple TV+ & Apple Music from nonOrganic → organic on CSR
+  const newAmexDefault = DEFAULT_CARDS.find((c) => c.id === "amex-business-platinum")!;
   const migrated = cards.map((card) => {
+    // Reset Amex Business Platinum if it has the old annual fee ($695) or old benefit IDs
+    if (card.id === "amex-business-platinum" && (card.annualFee !== 895 || card.benefits.some((b) => b.id === "digital"))) {
+      return newAmexDefault;
+    }
     if (card.id !== "chase-sapphire-reserve") return card;
     return {
       ...card,

@@ -131,14 +131,13 @@ const POINTS_RATES: Record<string, PointsCategory[]> = {
     { category: "Everything else",        multiplier: "1x" },
   ],
   "amex-business-platinum": [
-    { category: "Flights (Amex Travel)",        multiplier: "5x",   note: "Prepaid flights booked through Amex Travel" },
-    { category: "Prepaid Hotels (Amex Travel)", multiplier: "5x",   note: "Prepaid hotels booked through Amex Travel" },
-    { category: "Large Purchases ($5K+)",       multiplier: "1.5x", note: "U.S. purchases of $5,000+" },
-    { category: "Construction & Hardware",      multiplier: "1.5x", note: "U.S. merchants" },
-    { category: "Electronics/Software",         multiplier: "1.5x", note: "U.S. merchants" },
-    { category: "Shipping",                     multiplier: "1.5x", note: "U.S. merchants" },
-    { category: "Advertising (select media)",   multiplier: "1.5x", note: "Up to $2M/year" },
-    { category: "Everything else",              multiplier: "1x" },
+    { category: "Flights (Amex Travel)",            multiplier: "5x",  note: "Prepaid flights booked through AmexTravel.com" },
+    { category: "Hotels (Amex Travel)",             multiplier: "5x",  note: "Prepaid hotels & short-term rentals via AmexTravel.com" },
+    { category: "Large Purchases ($5K+)",           multiplier: "2x",  note: "U.S. purchases of $5,000+ (up to $2M/yr)" },
+    { category: "Construction & Hardware",          multiplier: "2x",  note: "U.S. construction material merchants" },
+    { category: "Electronics/Software/Cloud",       multiplier: "2x",  note: "U.S. electronic goods retailers & software/cloud providers" },
+    { category: "Shipping",                         multiplier: "2x",  note: "U.S. shipping providers" },
+    { category: "Everything else",                  multiplier: "1x" },
   ],
 };
 
