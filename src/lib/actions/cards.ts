@@ -215,13 +215,76 @@ const DEFAULT_CARDS: CardBenefitData[] = [
       },
     ],
   },
+  {
+    id: "amex-blue-everyday",
+    name: "Amex Blue Cash Everyday®",
+    annualFee: 0,
+    tagline: "NO ANNUAL FEE — CASH BACK ANALYSIS 2026",
+    accentColor: "indigo",
+    benefits: [
+      {
+        id: "disney-bundle",
+        benefit: "$84 Disney Bundle Credit",
+        subtitle: "$7/mo — Disney+, Hulu, ESPN+",
+        maxValue: 84,
+        organic: { notes: "Monthly statement credit on Disney Bundle subscription", value: 84 },
+      },
+      {
+        id: "home-chef",
+        benefit: "$180 Home Chef Credit",
+        subtitle: "$15/mo",
+        maxValue: 180,
+        organic: { notes: "Monthly statement credit on Home Chef meal kit orders", value: "TBD", icon: "hourglass" },
+      },
+      {
+        id: "cash-back-grocery",
+        benefit: "3% Cash Back — U.S. Supermarkets",
+        subtitle: "Up to $6,000/yr then 1%",
+        maxValue: "Soft",
+        organic: { notes: "Automatic on grocery spend up to $6K/yr", value: "Soft" },
+      },
+      {
+        id: "cash-back-online",
+        benefit: "3% Cash Back — U.S. Online Retail",
+        subtitle: "Up to $6,000/yr then 1%",
+        maxValue: "Soft",
+        organic: { notes: "Includes Amazon — automatic on online retail up to $6K/yr", value: "Soft" },
+      },
+      {
+        id: "cash-back-gas",
+        benefit: "3% Cash Back — U.S. Gas Stations",
+        subtitle: "Up to $6,000/yr then 1%",
+        maxValue: "Soft",
+        organic: { notes: "Automatic on gas station purchases up to $6K/yr", value: "Soft" },
+      },
+      {
+        id: "amex-offers",
+        benefit: "Amex Offers",
+        maxValue: "Soft",
+        nonOrganic: { notes: "Extra cash back / credits at select brands — check app regularly", value: "Soft" },
+      },
+      {
+        id: "purchase-protection",
+        benefit: "Purchase Protection & Extended Warranty",
+        maxValue: "Soft",
+        organic: { notes: "Passive coverage on eligible purchases", value: "Soft" },
+      },
+    ],
+  },
 ];
 
 export async function getCards(): Promise<CardBenefitData[]> {
   const cards = await getData<CardBenefitData[]>("cards_v1", DEFAULT_CARDS);
   // Migrate: move Apple TV+ & Apple Music from nonOrganic → organic on CSR
+  // Add new cards that don't exist in stored data yet
+  const storedIds = new Set(cards.map((c) => c.id));
+  const withNew = [
+    ...cards,
+    ...DEFAULT_CARDS.filter((c) => !storedIds.has(c.id)),
+  ];
+
   const newAmexDefault = DEFAULT_CARDS.find((c) => c.id === "amex-business-platinum")!;
-  const migrated = cards.map((card) => {
+  const migrated = withNew.map((card) => {
     // Reset Amex Business Platinum if it has the old annual fee ($695) or old benefit IDs
     if (card.id === "amex-business-platinum" && (card.annualFee !== 895 || card.benefits.some((b) => b.id === "digital"))) {
       return newAmexDefault;

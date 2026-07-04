@@ -130,6 +130,12 @@ const POINTS_RATES: Record<string, PointsCategory[]> = {
     { category: "Travel",                 multiplier: "3x",  note: "Flights, hotels, transit, rideshare booked directly" },
     { category: "Everything else",        multiplier: "1x" },
   ],
+  "amex-blue-everyday": [
+    { category: "U.S. Supermarkets",   multiplier: "3x", note: "Up to $6,000/yr, then 1%" },
+    { category: "U.S. Online Retail",  multiplier: "3x", note: "Up to $6,000/yr, then 1% (includes Amazon)" },
+    { category: "U.S. Gas Stations",   multiplier: "3x", note: "Up to $6,000/yr, then 1%" },
+    { category: "Everything else",     multiplier: "1x" },
+  ],
   "amex-business-platinum": [
     { category: "Flights (Amex Travel)",            multiplier: "5x",  note: "Prepaid flights booked through AmexTravel.com" },
     { category: "Hotels (Amex Travel)",             multiplier: "5x",  note: "Prepaid hotels & short-term rentals via AmexTravel.com" },
