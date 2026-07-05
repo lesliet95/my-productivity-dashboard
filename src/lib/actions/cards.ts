@@ -225,36 +225,99 @@ const DEFAULT_CARDS: CardBenefitData[] = [
       {
         id: "cell-insurance",
         benefit: "Cell Phone Insurance",
-        subtitle: "Up to $1,000/claim · 3 claims/yr · $100 deductible",
+        subtitle: "Up to $900/claim ($1,000 − $100 deductible) · 3 claims/12 months",
         maxValue: "Soft",
         organic: { notes: "Pay monthly phone bill with card to activate — replaces standalone insurance", value: "Soft" },
       },
       {
         id: "trip-cancel",
         benefit: "Trip Cancellation / Interruption Insurance",
-        subtitle: "Up to $5,000/trip",
+        subtitle: "Up to $5,000/traveler · $10,000/trip",
         maxValue: "Soft",
-        organic: { notes: "Passive — book travel with card to activate", value: "Soft" },
+        organic: { notes: "Covers non-refundable prepaid travel — book with card to activate", value: "Soft" },
+      },
+      {
+        id: "trip-delay",
+        benefit: "Trip Delay Reimbursement",
+        subtitle: "Up to $500 · delays 12+ hours",
+        maxValue: "Soft",
+        organic: { notes: "Covers meals, lodging, and incidentals when flight delayed 12+ hours", value: "Soft" },
+      },
+      {
+        id: "baggage-loss",
+        benefit: "Baggage Loss / Damage Insurance",
+        subtitle: "Up to $3,000 · $500 sub-limit for jewelry & electronics",
+        maxValue: "Soft",
+        organic: { notes: "Covers lost or damaged checked/carry-on baggage", value: "Soft" },
+      },
+      {
+        id: "baggage-delay",
+        benefit: "Baggage Delay Insurance",
+        subtitle: "Up to $100/day · 5 days · delayed 6+ hours",
+        maxValue: "Soft",
+        organic: { notes: "Covers essential purchases when bag is delayed 6+ hours", value: "Soft" },
+      },
+      {
+        id: "travel-accident",
+        benefit: "Travel Accident Insurance",
+        subtitle: "Up to $500,000 common carrier · $100,000 24-hr coverage",
+        maxValue: "Soft",
+        organic: { notes: "Automatic coverage when travel booked with card", value: "Soft" },
       },
       {
         id: "primary-rental",
         benefit: "Primary Rental Car Insurance",
+        subtitle: "Business rentals — collision & theft, not liability",
         maxValue: "Soft",
-        organic: { notes: "Primary coverage — no need to file with personal auto first", value: "Soft" },
+        organic: { notes: "Primary coverage — decline dealer CDW and save ~$15–30/day", value: "Soft" },
       },
       {
         id: "purchase-protection",
-        benefit: "Purchase Protection & Extended Warranty",
-        subtitle: "Up to $10,000/item · +1 yr warranty",
+        benefit: "Purchase Protection",
+        subtitle: "120 days · up to $10,000/claim · $50,000/yr",
         maxValue: "Soft",
-        organic: { notes: "Passive on eligible purchases", value: "Soft" },
+        organic: { notes: "Covers damage or theft on new purchases for 120 days", value: "Soft" },
+      },
+      {
+        id: "extended-warranty",
+        benefit: "Extended Warranty",
+        subtitle: "+1 year on warranties of 3 years or less · $10,000/claim",
+        maxValue: "Soft",
+        organic: { notes: "Doubles manufacturer warranty up to 1 additional year", value: "Soft" },
+      },
+      {
+        id: "dashpass",
+        benefit: "DashPass — DoorDash & Caviar",
+        subtitle: "Complimentary membership",
+        maxValue: "Soft",
+        nonOrganic: { notes: "$0 delivery fees + reduced service fees on eligible orders", value: "Soft" },
+      },
+      {
+        id: "lyft",
+        benefit: "5x Points on Lyft",
+        subtitle: "Through September 30, 2027",
+        maxValue: "Soft",
+        organic: { notes: "5x instead of standard 3x travel rate — use Lyft for airport rides", value: "Soft" },
       },
       {
         id: "points-transfer",
         benefit: "Transfer to Travel Partners",
-        subtitle: "United, Hyatt, Southwest, British Airways + more",
+        subtitle: "10 airlines · 4 hotels (United, Hyatt, Southwest, British Airways + more)",
         maxValue: "Soft",
-        organic: { notes: "1:1 transfer to 14 airline & hotel partners — high value for premium redemptions", value: "Soft" },
+        organic: { notes: "1:1 transfer to 14 partners — Hyatt especially high value at ~2¢+/point", value: "Soft" },
+      },
+      {
+        id: "no-foreign-fee",
+        benefit: "No Foreign Transaction Fees",
+        maxValue: "Soft",
+        organic: { notes: "Use internationally with no added fees", value: "Soft" },
+      },
+      {
+        id: "employee-cards",
+        benefit: "Free Employee Cards",
+        subtitle: "Set limits · track spend · earn points on employee purchases",
+        maxValue: "Soft",
+        organic: { notes: "Add employees at no extra cost — all spend earns points at same rates", value: "Soft" },
       },
     ],
   },
@@ -333,8 +396,11 @@ export async function getCards(): Promise<CardBenefitData[]> {
     if (card.id === "amex-business-platinum" && (card.annualFee !== 895 || card.benefits.some((b) => b.id === "digital"))) {
       return newAmexDefault;
     }
-    // Reset Chase Ink if it still has the old points benefit rows
-    if (card.id === "chase-ink-business" && card.benefits.some((b) => b.id === "travel-points" || b.id === "ads-points")) {
+    // Reset Chase Ink if it has old points rows OR is missing new benefits like trip-delay
+    if (card.id === "chase-ink-business" && (
+      card.benefits.some((b) => b.id === "travel-points" || b.id === "ads-points") ||
+      !card.benefits.some((b) => b.id === "trip-delay")
+    )) {
       return { ...newInkDefault, renewalDate: card.renewalDate };
     }
     if (card.id !== "chase-sapphire-reserve") return card;
