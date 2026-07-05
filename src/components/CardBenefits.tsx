@@ -192,6 +192,13 @@ const POINTS_RATES: Record<string, PointsCategory[]> = {
     { category: "Shipping",                         multiplier: "2x",  note: "U.S. shipping providers" },
     { category: "Everything else",                  multiplier: "1x" },
   ],
+  "chase-ink-business": [
+    { category: "Travel",                           multiplier: "3x",  note: "First $150K/yr combined across 3x categories — flights, hotels, rental cars, rideshare" },
+    { category: "Shipping",                         multiplier: "3x",  note: "First $150K/yr combined — all shipping providers" },
+    { category: "Social Media & Search Ads",        multiplier: "3x",  note: "First $150K/yr combined — Facebook, Instagram, Google, TikTok ads" },
+    { category: "Internet, Cable & Phone",          multiplier: "3x",  note: "First $150K/yr combined — internet, cable TV, landline/wireless phone services" },
+    { category: "Everything else",                  multiplier: "1x" },
+  ],
 };
 
 const MULTIPLIER_COLOR: Record<string, string> = {
