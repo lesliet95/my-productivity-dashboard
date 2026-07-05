@@ -8,6 +8,7 @@ export interface BucketListItem {
   completed: boolean;
   completedAt?: string;
   category?: string;
+  imageUrl?: string;
 }
 
 export type BucketListData = {
@@ -40,4 +41,9 @@ export async function toggleBucketItem(id: string): Promise<void> {
 export async function deleteBucketItem(id: string): Promise<void> {
   const current = await getBucketList();
   await setData(KEY, { items: current.items.filter((i) => i.id !== id) }, "/bucket-list");
+}
+
+export async function updateBucketItem(id: string, patch: Partial<Pick<BucketListItem, "text" | "category" | "imageUrl">>): Promise<void> {
+  const current = await getBucketList();
+  await setData(KEY, { items: current.items.map((i) => i.id === id ? { ...i, ...patch } : i) }, "/bucket-list");
 }

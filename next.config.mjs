@@ -5,6 +5,12 @@ const nextConfig = {
       allowedOrigins: ["localhost:3000"],
     },
   },
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "**" },
+      { protocol: "http",  hostname: "**" },
+    ],
+  },
 };
 
 export default nextConfig;
