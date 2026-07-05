@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition } from "react";
 import {
   addBucketItem, toggleBucketItem, deleteBucketItem, updateBucketItem,
   type BucketListItem, type BucketListData,
 } from "@/lib/actions/bucketList";
 import { Plus, Trash2, X, List, LayoutGrid, ImageIcon, Check, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -60,13 +59,12 @@ function VisionCard({ item, onToggle, onDelete, onUpdate }: {
       {/* Background image */}
       {hasImage && (
         <>
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={item.imageUrl!}
             alt={item.text}
-            fill
-            className="object-cover"
+            className="absolute inset-0 w-full h-full object-cover"
             onError={() => setImgError(true)}
-            sizes="(max-width: 768px) 50vw, 33vw"
           />
           {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
