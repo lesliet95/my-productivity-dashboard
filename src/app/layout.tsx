@@ -1,11 +1,27 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import AuthProvider from "@/components/AuthProvider";
 
+export const viewport: Viewport = {
+  themeColor: "#4f46e5",
+  width: "device-width",
+  initialScale: 1,
+};
+
 export const metadata: Metadata = {
-  title: "Productivity Dashboard",
-  description: "Your personal productivity hub",
+  title: "My Dashboard",
+  description: "Personal productivity dashboard",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Dashboard",
+  },
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/icon-192.png",
+  },
 };
 
 export default function RootLayout({
@@ -15,10 +31,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <meta name="mobile-web-app-capable" content="yes" />
+      </head>
       <body className="flex min-h-screen bg-gray-50">
         <AuthProvider>
           <Sidebar />
-          <main className="flex-1 ml-64 p-8">{children}</main>
+          <main className="flex-1 md:ml-64 p-4 md:p-8 pb-20 md:pb-8">{children}</main>
         </AuthProvider>
       </body>
     </html>
