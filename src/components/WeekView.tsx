@@ -653,17 +653,26 @@ function CalendarEvents({ weekStart, weekEnd }: { weekStart: string; weekEnd: st
       )}
 
       {error && (
-        <div className="text-xs text-center py-4 space-y-1">
-          <p className="text-gray-400">
-            {error.includes("Not authenticated") || error.includes("401")
-              ? "Sign in with Google to see your calendar."
+        <div className="text-center py-4 space-y-2">
+          <p className="text-xs text-gray-400">
+            {error.includes("Session expired") || error.includes("Not authenticated") || error.includes("401")
+              ? "Your Google session needs to be refreshed."
               : `Could not load events: ${error}`}
           </p>
-          {(error.includes("Not authenticated") || error.includes("401")) && (
-            <a href="/api/auth/signin" className="text-xs font-medium underline" style={{ color: "var(--mahogany)" }}>
-              Connect Google Calendar →
-            </a>
-          )}
+          <a
+            href="/api/auth/signout"
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg text-white transition-colors"
+            style={{ background: "var(--mahogany)" }}
+            onClick={(e) => {
+              e.preventDefault();
+              // Sign out then redirect back to sign in
+              fetch("/api/auth/signout", { method: "POST" }).finally(() => {
+                window.location.href = "/api/auth/signin";
+              });
+            }}
+          >
+            Sign in with Google again →
+          </a>
         </div>
       )}
 

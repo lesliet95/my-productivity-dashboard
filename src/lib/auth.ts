@@ -75,8 +75,13 @@ export const authOptions: NextAuthOptions = {
 
       token.role = getRole(token.email as string | undefined);
 
+      // No refresh token stored (old session) — flag for re-login
+      if (!token.refreshToken) {
+        return { ...token, error: "RefreshAccessTokenError" };
+      }
+
       // Token still valid — return as-is
-      if (Date.now() < (token.accessTokenExpires as number)) {
+      if (token.accessTokenExpires && Date.now() < (token.accessTokenExpires as number)) {
         return token;
       }
 
