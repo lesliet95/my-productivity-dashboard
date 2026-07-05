@@ -223,34 +223,6 @@ const DEFAULT_CARDS: CardBenefitData[] = [
     accentColor: "blue",
     benefits: [
       {
-        id: "travel-points",
-        benefit: "3x Points — Travel",
-        subtitle: "First $150K combined per year",
-        maxValue: "Soft",
-        organic: { notes: "Flights, hotels, rental cars — booked on this card", value: "Soft" },
-      },
-      {
-        id: "shipping-points",
-        benefit: "3x Points — Shipping",
-        subtitle: "First $150K combined per year",
-        maxValue: "Soft",
-        organic: { notes: "Business shipping purchases", value: "Soft" },
-      },
-      {
-        id: "ads-points",
-        benefit: "3x Points — Social Media & Search Ads",
-        subtitle: "First $150K combined per year",
-        maxValue: "Soft",
-        organic: { notes: "Facebook, Google, TikTok ad spend", value: "Soft" },
-      },
-      {
-        id: "internet-points",
-        benefit: "3x Points — Internet / Cable / Phone",
-        subtitle: "First $150K combined per year",
-        maxValue: "Soft",
-        organic: { notes: "Monthly subscriptions & phone bills", value: "Soft" },
-      },
-      {
         id: "cell-insurance",
         benefit: "Cell Phone Insurance",
         subtitle: "Up to $1,000/claim · 3 claims/yr · $100 deductible",
