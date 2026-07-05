@@ -1,4 +1,5 @@
 import type { NextAuthOptions } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google";
 
 const OWNER_EMAIL = process.env.OWNER_EMAIL ?? "leslie.cao5@gmail.com";
@@ -11,6 +12,35 @@ export function getRole(email?: string | null): UserRole | null {
   if (email === OWNER_EMAIL) return "owner";
   if (PARTNER_EMAIL && email === PARTNER_EMAIL) return "partner";
   return null;
+}
+
+async function refreshAccessToken(token: JWT): Promise<JWT> {
+  try {
+    const res = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: process.env.GOOGLE_CLIENT_ID ?? "",
+        client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+        grant_type: "refresh_token",
+        refresh_token: token.refreshToken as string,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw data;
+
+    return {
+      ...token,
+      accessToken: data.access_token,
+      // Google only returns a new refresh_token if rotation is enabled; keep existing one otherwise
+      refreshToken: data.refresh_token ?? token.refreshToken,
+      accessTokenExpires: Date.now() + data.expires_in * 1000,
+      error: undefined,
+    };
+  } catch {
+    return { ...token, error: "RefreshAccessTokenError" };
+  }
 }
 
 export const authOptions: NextAuthOptions = {
@@ -29,17 +59,37 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user }) {
-      // Only allow owner and partner emails
       return getRole(user.email) !== null;
     },
     async jwt({ token, account }) {
-      if (account?.access_token) token.accessToken = account.access_token;
+      // First sign-in: store tokens and expiry
+      if (account) {
+        return {
+          ...token,
+          accessToken: account.access_token,
+          refreshToken: account.refresh_token,
+          accessTokenExpires: account.expires_at ? account.expires_at * 1000 : Date.now() + 3600 * 1000,
+          role: getRole(token.email as string | undefined),
+        };
+      }
+
       token.role = getRole(token.email as string | undefined);
-      return token;
+
+      // Token still valid — return as-is
+      if (Date.now() < (token.accessTokenExpires as number)) {
+        return token;
+      }
+
+      // Token expired — refresh it
+      return refreshAccessToken(token);
     },
     async session({ session, token }) {
-      (session as { accessToken?: string; role?: UserRole }).accessToken = token.accessToken as string | undefined;
-      (session as { accessToken?: string; role?: UserRole }).role = token.role as UserRole;
+      (session as { accessToken?: string; role?: UserRole; error?: string }).accessToken =
+        token.accessToken as string | undefined;
+      (session as { accessToken?: string; role?: UserRole; error?: string }).role =
+        token.role as UserRole;
+      (session as { accessToken?: string; role?: UserRole; error?: string }).error =
+        token.error as string | undefined;
       return session;
     },
   },

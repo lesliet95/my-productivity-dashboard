@@ -8,6 +8,9 @@ export async function GET(req: NextRequest) {
   if (!session?.accessToken) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
+  if ((session as { error?: string }).error === "RefreshAccessTokenError") {
+    return NextResponse.json({ error: "Session expired — please sign in again" }, { status: 401 });
+  }
 
   const { searchParams } = req.nextUrl;
   const timeMin = searchParams.get("timeMin");
