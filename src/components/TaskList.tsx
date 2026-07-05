@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, createContext, useContext } from "react";
 import {
   toggleTask, deleteTask, createTask, updateTaskDescription, updateTaskCategory,
   updateTaskDueDate, updateTaskSubtasks, updateTaskPriority, updateTaskTitle,
@@ -9,6 +9,9 @@ import {
 import { TASK_CATEGORIES, CATEGORY_STYLES, type TaskCategory } from "@/lib/taskCategories";
 import { Plus, Trash2, ChevronDown, Calendar, LayoutGrid, ChevronLeft, ChevronRight, Check, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const AvailableCategoriesCtx = createContext<TaskCategory[]>(TASK_CATEGORIES);
+const useAvailableCategories = () => useContext(AvailableCategoriesCtx);
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -286,6 +289,7 @@ function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategor
   const [titleDraft, setTitleDraft] = useState(task.title);
   const titleDraftRef = React.useRef(titleDraft);
   titleDraftRef.current = titleDraft;
+  const availableCategories = useAvailableCategories();
   const [draft, setDraft] = useState(task.description ?? "");
   const draftRef = React.useRef(draft);
   draftRef.current = draft;
@@ -371,7 +375,7 @@ function ColumnTaskCard({ task, onToggle, onDelete, onDescriptionSave, onCategor
                 className="text-[10px] text-gray-600 bg-white border border-gray-200 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-300"
               >
                 <option value="">Uncategorized</option>
-                {TASK_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                {availableCategories.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
           </div>
@@ -436,6 +440,7 @@ function TableRow({ task, onToggle, onDelete, onDescriptionSave, onCategoryChang
   const [titleDraft, setTitleDraft] = useState(task.title);
   const titleDraftRef = React.useRef(titleDraft);
   titleDraftRef.current = titleDraft;
+  const availableCategories = useAvailableCategories();
   const [draft, setDraft] = useState(task.description ?? "");
   const draftRef = React.useRef(draft);
   draftRef.current = draft;
@@ -511,7 +516,7 @@ function TableRow({ task, onToggle, onDelete, onDescriptionSave, onCategoryChang
             )}
           >
             <option value="">Uncategorized</option>
-            {TASK_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            {availableCategories.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </td>
         <td className="py-2.5 px-4 text-center">
@@ -546,7 +551,7 @@ function TableRow({ task, onToggle, onDelete, onDescriptionSave, onCategoryChang
                   className="text-xs text-gray-600 bg-white border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-300"
                 >
                   <option value="">Uncategorized</option>
-                  {TASK_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {availableCategories.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
@@ -564,6 +569,7 @@ function TableRow({ task, onToggle, onDelete, onDescriptionSave, onCategoryChang
 // ── Add row inside table ───────────────────────────────────────────────────────
 
 function AddTableRow({ onAdd, onCancel }: { onAdd: (t: Task) => void; onCancel: () => void }) {
+  const availableCategories = useAvailableCategories();
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [dueDate, setDueDate] = useState("");
@@ -611,7 +617,7 @@ function AddTableRow({ onAdd, onCancel }: { onAdd: (t: Task) => void; onCancel: 
         <select value={category} onChange={(e) => setCategory(e.target.value as TaskCategory | "")}
           className="text-xs bg-white border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none w-full">
           <option value="">None</option>
-          {TASK_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          {availableCategories.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
       </td>
       <td className="py-2 px-4 text-center">
@@ -746,7 +752,8 @@ function CalendarView({ tasks, onToggle }: { tasks: Task[]; onToggle: (id: numbe
 
 // ── Root ───────────────────────────────────────────────────────────────────────
 
-export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
+export default function TaskList({ initialTasks, partnerCategories }: { initialTasks: Task[]; partnerCategories?: TaskCategory[] }) {
+  const availableCategories = partnerCategories ?? TASK_CATEGORIES;
   const [tasks, setTasks] = useState(initialTasks);
   const [, startTransition] = useTransition();
   const [showAddRow, setShowAddRow] = useState(false);
@@ -809,6 +816,7 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
   const sharedProps = { onToggle: handleToggle, onDelete: handleDelete, onDescriptionSave: handleDescriptionSave, onCategoryChange: handleCategoryChange, onDueDateSave: handleDueDateSave, onSubtasksUpdate: handleSubtasksUpdate, onPriorityChange: handlePriorityChange, onTitleSave: handleTitleSave };
 
   return (
+    <AvailableCategoriesCtx.Provider value={availableCategories}>
     <div className="space-y-8">
       <div>
         <div className="flex items-center justify-between mb-3">
@@ -836,7 +844,7 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
         {topView === "upcoming" ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-              {TASK_CATEGORIES.map((cat) => (
+              {availableCategories.map((cat) => (
                 <CategoryColumn key={cat} category={cat}
                   tasks={tasks.filter((t) => t.category === cat)}
                   onAdd={handleAdd} {...sharedProps} />
@@ -906,5 +914,6 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
         </div>
       </div>
     </div>
+    </AvailableCategoriesCtx.Provider>
   );
 }
