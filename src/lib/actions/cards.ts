@@ -327,10 +327,15 @@ export async function getCards(): Promise<CardBenefitData[]> {
   ];
 
   const newAmexDefault = DEFAULT_CARDS.find((c) => c.id === "amex-business-platinum")!;
+  const newInkDefault = DEFAULT_CARDS.find((c) => c.id === "chase-ink-business")!;
   const migrated = withNew.map((card) => {
     // Reset Amex Business Platinum if it has the old annual fee ($695) or old benefit IDs
     if (card.id === "amex-business-platinum" && (card.annualFee !== 895 || card.benefits.some((b) => b.id === "digital"))) {
       return newAmexDefault;
+    }
+    // Reset Chase Ink if it still has the old points benefit rows
+    if (card.id === "chase-ink-business" && card.benefits.some((b) => b.id === "travel-points" || b.id === "ads-points")) {
+      return { ...newInkDefault, renewalDate: card.renewalDate };
     }
     if (card.id !== "chase-sapphire-reserve") return card;
     return {
