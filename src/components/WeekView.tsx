@@ -4,7 +4,7 @@ import { useState, useTransition, useRef, useCallback, useEffect } from "react";
 import { saveWeekData, type WeekData, type WeekGoal } from "@/lib/actions/weekView";
 import { toggleTask, createTask, deleteTask, type Task } from "@/lib/actions/tasks";
 import { CATEGORY_STYLES } from "@/lib/taskCategories";
-import { ChevronLeft, ChevronRight, Plus, Trash2, BookOpen, Sparkles, ExternalLink } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2, BookOpen, Sparkles, ExternalLink, CalendarDays, Clock } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -204,6 +204,7 @@ export default function WeekView({
 
         {/* Right col */}
         <div className="space-y-5">
+          <CalendarEvents weekStart={weekStart} weekEnd={weekEnd} />
           <CurrentlyReadingWidget reading={data.reading} onChange={(reading) => persist({ reading })} />
           <WeekStats tasks={weekTasks} goals={data.goals} />
         </div>
@@ -571,6 +572,180 @@ function CurrentlyReadingWidget({ reading, onChange }: {
         <p className="text-sm text-gray-400 text-center py-3">No book set for this week</p>
       )}
     </div>
+  );
+}
+
+// ── CalendarEvents ────────────────────────────────────────────────────────────
+
+type CalEvent = {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  allDay: boolean;
+  htmlLink: string | null;
+};
+
+const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function formatEventTime(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+}
+
+function eventDateKey(iso: string) {
+  return new Date(iso).toISOString().slice(0, 10);
+}
+
+function CalendarEvents({ weekStart, weekEnd }: { weekStart: string; weekEnd: string }) {
+  const [events, setEvents] = useState<CalEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+  const weekDates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart + "T00:00:00");
+    d.setDate(d.getDate() + i);
+    return d.toISOString().slice(0, 10);
+  });
+  const today = new Date().toISOString().slice(0, 10);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    const timeMin = new Date(weekStart + "T00:00:00").toISOString();
+    const timeMax = new Date(weekEnd + "T23:59:59").toISOString();
+    fetch(`/api/calendar/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.error) setError(data.error);
+        else setEvents(data.events ?? []);
+      })
+      .catch(() => setError("Failed to load events"))
+      .finally(() => setLoading(false));
+  }, [weekStart, weekEnd]);
+
+  const visibleEvents = selectedDay
+    ? events.filter((e) => eventDateKey(e.start) === selectedDay || (e.allDay && e.start.slice(0, 10) === selectedDay))
+    : events;
+
+  // Group by day for display
+  const byDay = weekDates.reduce<Record<string, CalEvent[]>>((acc, date) => {
+    acc[date] = events.filter((e) => eventDateKey(e.start) === date);
+    return acc;
+  }, {});
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <CalendarDays size={15} className="text-pewter" />
+        <h3 className="font-semibold text-gray-900 text-sm">Google Calendar</h3>
+        {!loading && !error && (
+          <span className="ml-auto text-xs text-gray-400">{events.length} event{events.length !== 1 ? "s" : ""}</span>
+        )}
+      </div>
+
+      {loading && (
+        <div className="flex items-center gap-2 text-xs text-gray-400 py-4 justify-center">
+          <div className="w-3 h-3 border-2 border-gray-200 border-t-pewter rounded-full animate-spin" />
+          Loading events…
+        </div>
+      )}
+
+      {error && (
+        <div className="text-xs text-center py-4 space-y-1">
+          <p className="text-gray-400">
+            {error.includes("Not authenticated") || error.includes("401")
+              ? "Sign in with Google to see your calendar."
+              : `Could not load events: ${error}`}
+          </p>
+          {(error.includes("Not authenticated") || error.includes("401")) && (
+            <a href="/api/auth/signin" className="text-xs font-medium underline" style={{ color: "var(--mahogany)" }}>
+              Connect Google Calendar →
+            </a>
+          )}
+        </div>
+      )}
+
+      {!loading && !error && events.length === 0 && (
+        <p className="text-xs text-gray-400 text-center py-4">No events this week</p>
+      )}
+
+      {!loading && !error && events.length > 0 && (
+        <>
+          {/* Day filter dots */}
+          <div className="flex gap-1 mb-3">
+            <button
+              onClick={() => setSelectedDay(null)}
+              className={cn("flex-1 py-1 rounded-md text-[10px] font-medium transition-colors",
+                selectedDay === null ? "text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200")}
+              style={selectedDay === null ? { background: "var(--slate)" } : {}}>
+              All
+            </button>
+            {weekDates.map((date, i) => {
+              const count = byDay[date]?.length ?? 0;
+              const isToday = date === today;
+              const isSelected = selectedDay === date;
+              return (
+                <button key={date} onClick={() => setSelectedDay(isSelected ? null : date)}
+                  className={cn("flex-1 flex flex-col items-center py-1 rounded-md text-[10px] font-medium transition-colors relative",
+                    isSelected ? "text-white" : isToday ? "ring-1" : "bg-gray-100 text-gray-500 hover:bg-gray-200")}
+                  style={isSelected ? { background: "var(--slate)" } : isToday ? { background: "rgba(153,179,183,0.12)", borderColor: "var(--pewter)", color: "var(--slate)" } : {}}>
+                  {DAY_NAMES[i]}
+                  {count > 0 && (
+                    <span className={cn("w-1 h-1 rounded-full mt-0.5", isSelected ? "bg-white" : "bg-pewter")} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Event list */}
+          <ul className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+            {visibleEvents.map((ev) => (
+              <li key={ev.id}>
+                {ev.htmlLink ? (
+                  <a href={ev.htmlLink} target="_blank" rel="noopener noreferrer"
+                    className="flex items-start gap-2 group hover:bg-gray-50 rounded-lg px-2 py-1.5 transition-colors -mx-2">
+                    <EventContent ev={ev} />
+                  </a>
+                ) : (
+                  <div className="flex items-start gap-2 px-2 py-1.5">
+                    <EventContent ev={ev} />
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
+function EventContent({ ev }: { ev: CalEvent }) {
+  const dateKey = eventDateKey(ev.start);
+  const today = new Date().toISOString().slice(0, 10);
+  const isToday = dateKey === today;
+  return (
+    <>
+      <div className="w-1 rounded-full shrink-0 mt-1 self-stretch" style={{ background: "var(--pewter)", minHeight: 14 }} />
+      <div className="flex-1 min-w-0">
+        <p className={cn("text-xs font-medium leading-snug truncate", isToday ? "text-gray-900" : "text-gray-700")}>
+          {ev.title}
+        </p>
+        <p className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
+          {ev.allDay ? (
+            <span>{new Date(ev.start + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · All day</span>
+          ) : (
+            <>
+              <Clock size={9} />
+              {new Date(ev.start + "T00:00:00").toLocaleDateString("en-US", { weekday: "short" })} {formatEventTime(ev.start)} – {formatEventTime(ev.end)}
+            </>
+          )}
+        </p>
+      </div>
+    </>
   );
 }
 
