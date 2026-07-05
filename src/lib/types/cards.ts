@@ -27,6 +27,7 @@ export interface CardBenefitData {
   id: string;
   name: string;
   annualFee: number;
+  renewalDate?: string; // YYYY-MM-DD
   tagline?: string;
   accentColor?: string; // tailwind color name, e.g. "indigo", "blue"
   benefits: BenefitRow[];

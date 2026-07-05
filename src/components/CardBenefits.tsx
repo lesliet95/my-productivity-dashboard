@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import type { CardBenefitData, BenefitValue, BenefitRow } from "@/lib/types/cards";
 import { calcCardMath } from "@/lib/types/cards";
 import { saveCards } from "@/lib/actions/cards";
-import { CreditCard, Zap, Pencil, Check } from "lucide-react";
+import { CreditCard, Zap, Pencil, Check, CalendarClock } from "lucide-react";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -17,6 +17,53 @@ function fmtValue(v: BenefitValue): string {
 
 function fmtMath(n: number, prefix = "+"): string {
   return `${n >= 0 ? prefix : "-"}$${Math.abs(n).toLocaleString()}`;
+}
+
+function RenewalDateBadge({ renewalDate, onSave }: { renewalDate?: string; onSave: (date: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(renewalDate ?? "");
+
+  const daysUntil = renewalDate
+    ? Math.ceil((new Date(renewalDate + "T00:00:00").getTime() - Date.now()) / 86400000)
+    : null;
+
+  const urgency = daysUntil === null ? null
+    : daysUntil <= 30 ? "text-red-400 bg-red-900/30 border-red-700/40"
+    : daysUntil <= 90 ? "text-amber-400 bg-amber-900/30 border-amber-700/40"
+    : "text-gray-300 bg-white/5 border-white/10";
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <input
+          autoFocus
+          type="date"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          className="text-xs bg-[#1e2a45] border border-white/20 text-white rounded px-2 py-1 focus:outline-none focus:border-white/40"
+        />
+        <button onClick={() => { onSave(draft); setEditing(false); }}
+          className="text-xs bg-green-600/40 text-green-300 border border-green-600/40 px-2 py-1 rounded hover:bg-green-600/60">Save</button>
+        <button onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-200 px-1">✕</button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => setEditing(true)}
+      className={cn("flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded border transition-colors hover:opacity-80", urgency ?? "text-gray-400 bg-white/5 border-white/10")}
+      title="Click to set renewal date"
+    >
+      <CalendarClock size={12} />
+      {renewalDate
+        ? <>Renews {new Date(renewalDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+            {daysUntil !== null && <span className="ml-1 opacity-70">({daysUntil}d)</span>}
+          </>
+        : "Set renewal date"
+      }
+    </button>
+  );
 }
 
 function CheckIcon() {
@@ -194,6 +241,7 @@ export default function CardBenefits({ cards: initial }: { cards: CardBenefitDat
   const [activeId, setActiveId] = useState(initial[0]?.id ?? "");
   const [activeTab, setActiveTab] = useState<"benefits" | "points">("benefits");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [, startTransition] = useTransition();
 
   const card = cards.find((c) => c.id === activeId) ?? cards[0];
   if (!card) return <p className="text-gray-400 text-center py-16">No cards configured yet.</p>;
@@ -295,10 +343,18 @@ export default function CardBenefits({ cards: initial }: { cards: CardBenefitDat
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap justify-end">
               <span className="text-xs text-gray-400">
                 {usedCount}/{card.benefits.length} redeemed
               </span>
+              <RenewalDateBadge
+                renewalDate={card.renewalDate}
+                onSave={(date) => {
+                  const updated = cards.map((c) => c.id === card.id ? { ...c, renewalDate: date || undefined } : c);
+                  setCards(updated);
+                  startTransition(() => saveCards(updated));
+                }}
+              />
               <span className={cn("px-3 py-1.5 rounded text-sm font-bold", accent.feeBadge)}>
                 Annual Fee: ${card.annualFee.toLocaleString()}
               </span>
