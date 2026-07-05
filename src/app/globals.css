@@ -3,12 +3,148 @@
 @tailwind utilities;
 
 :root {
-  --background: #f9fafb;
-  --foreground: #111827;
+  --background: #eeece9;
+  --foreground: #1b2824;
+
+  --alabaster: #eeece9;
+  --pewter: #99b3b7;
+  --bronze: #9d7960;
+  --mahogany: #6e3d23;
+  --slate: #304e4d;
+  --obsidian: #1b2824;
+
+  /* Card surface — warm white, slightly lighter than alabaster */
+  --card-bg: #faf9f7;
+  --card-border: rgba(157, 121, 96, 0.15);
+  --card-shadow: 0 1px 3px rgba(27, 40, 36, 0.06), 0 4px 16px rgba(27, 40, 36, 0.04);
+  --card-shadow-hover: 0 2px 8px rgba(27, 40, 36, 0.10), 0 8px 24px rgba(27, 40, 36, 0.07);
 }
 
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+
 body {
-  background: var(--background);
+  background-color: var(--alabaster);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
   color: var(--foreground);
   font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* ── Glass card utility ───────────────────────────────────────────────────── */
+
+@layer components {
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+    border-radius: 0.75rem;
+    transition: box-shadow 0.2s ease;
+  }
+
+  .card:hover {
+    box-shadow: var(--card-shadow-hover);
+  }
+
+  .card-flat {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 0.75rem;
+  }
+
+  /* Section header left-border accent */
+  .section-accent {
+    border-left: 3px solid var(--bronze);
+    padding-left: 0.75rem;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply bg-mahogany text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors;
+  }
+  .btn-primary:hover {
+    background: #542e1a;
+  }
+
+  /* Muted badge */
+  .badge-pewter {
+    @apply text-xs font-medium px-2 py-0.5 rounded-full;
+    background: rgba(153, 179, 183, 0.2);
+    color: var(--slate);
+  }
+
+  .badge-bronze {
+    @apply text-xs font-medium px-2 py-0.5 rounded-full;
+    background: rgba(157, 121, 96, 0.15);
+    color: var(--mahogany);
+  }
+}
+
+/* ── Global tone overrides ────────────────────────────────────────────────── */
+/*
+  Rather than touching 20+ component files, we globally remap the most common
+  Tailwind utility patterns to the new palette via CSS overrides.
+  Component-specific theming is done inline where nuance is needed.
+*/
+
+/* White cards → warm card surface */
+.bg-white {
+  background-color: var(--card-bg) !important;
+}
+
+/* Gray page backgrounds → alabaster */
+.bg-gray-50 {
+  background-color: #f0eeeb !important;
+}
+.bg-gray-100 {
+  background-color: rgba(157, 121, 96, 0.08) !important;
+}
+
+/* Card borders → warm bronze-tinted */
+.border-gray-200 {
+  border-color: var(--card-border) !important;
+}
+.border-gray-100 {
+  border-color: rgba(157, 121, 96, 0.08) !important;
+}
+
+/* Indigo interactive → mahogany */
+.bg-indigo-50    { background-color: rgba(110, 61, 35, 0.07) !important; }
+.bg-indigo-100   { background-color: rgba(110, 61, 35, 0.12) !important; }
+.bg-indigo-600   { background-color: #6e3d23 !important; }
+.bg-indigo-700   { background-color: #542e1a !important; }
+.text-indigo-600 { color: #6e3d23 !important; }
+.text-indigo-700 { color: #542e1a !important; }
+.border-indigo-300 { border-color: rgba(110, 61, 35, 0.35) !important; }
+.border-indigo-600 { border-color: #6e3d23 !important; }
+.ring-indigo-300 { --tw-ring-color: rgba(110, 61, 35, 0.35) !important; }
+.ring-indigo-400 { --tw-ring-color: rgba(110, 61, 35, 0.5) !important; }
+.focus\:ring-indigo-300:focus { --tw-ring-color: rgba(110, 61, 35, 0.35) !important; }
+.focus\:border-indigo-300:focus { border-color: rgba(110, 61, 35, 0.4) !important; }
+.hover\:bg-indigo-700:hover { background-color: #542e1a !important; }
+.hover\:text-indigo-700:hover { color: #542e1a !important; }
+
+/* Primary text → obsidian */
+.text-gray-900 { color: #1b2824 !important; }
+.text-gray-800 { color: #263832 !important; }
+.text-gray-700 { color: #304e4d !important; }
+
+/* Hover backgrounds */
+.hover\:bg-gray-50:hover { background-color: rgba(157, 121, 96, 0.06) !important; }
+.hover\:bg-gray-100:hover { background-color: rgba(157, 121, 96, 0.10) !important; }
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(157, 121, 96, 0.25);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(157, 121, 96, 0.45);
 }

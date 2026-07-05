@@ -4,7 +4,7 @@ import Sidebar from "@/components/Sidebar";
 import AuthProvider from "@/components/AuthProvider";
 
 export const viewport: Viewport = {
-  themeColor: "#4f46e5",
+  themeColor: "#1b2824",
   width: "device-width",
   initialScale: 1,
 };
@@ -34,7 +34,7 @@ export default function RootLayout({
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className="flex min-h-screen bg-gray-50">
+      <body className="flex min-h-screen bg-alabaster">
         <AuthProvider>
           <Sidebar />
           <main className="flex-1 md:ml-64 p-4 md:p-8 pb-20 md:pb-8">{children}</main>

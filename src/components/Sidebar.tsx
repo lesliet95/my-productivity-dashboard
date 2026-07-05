@@ -23,8 +23,8 @@ const ownerLinks = [
 ];
 
 const partnerLinks = [
-  { href: "/tasks",       label: "Tasks",            icon: CheckSquare },
-  { href: "/wedding",     label: "Wedding",          icon: Heart },
+  { href: "/tasks",        label: "Tasks",            icon: CheckSquare },
+  { href: "/wedding",      label: "Wedding",          icon: Heart },
   { href: "/music-lovers", label: "Music Lovers Hub", icon: Music },
 ];
 
@@ -50,18 +50,21 @@ export default function Sidebar() {
 
   const links = isPartner ? partnerLinks : ownerLinks;
   const mobileLinks = isPartner ? partnerMobileLinks : ownerMobileLinks;
-  const title = isPartner ? "Music Lovers" : "Productivity";
-  const subtitle = isPartner ? "Shared hub" : "Your personal hub";
+  const title = isPartner ? "Music Lovers" : "My Dashboard";
+  const subtitle = isPartner ? "Shared hub" : "Personal workspace";
 
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 flex-col">
-        <div className="p-6 border-b border-gray-200">
-          <h1 className="text-xl font-bold text-gray-900">{title}</h1>
-          <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+      <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 flex-col" style={{ background: "#1b2824" }}>
+        {/* Logo area */}
+        <div className="p-6 border-b" style={{ borderColor: "rgba(153,179,183,0.12)" }}>
+          <h1 className="text-base font-semibold tracking-wide" style={{ color: "#eeece9" }}>{title}</h1>
+          <p className="text-xs mt-0.5" style={{ color: "rgba(153,179,183,0.7)" }}>{subtitle}</p>
         </div>
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+
+        {/* Nav */}
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {links.map(({ href, label, icon: Icon }) => {
             const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
             return (
@@ -69,39 +72,51 @@ export default function Sidebar() {
                 key={href}
                 href={href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
                   active
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    ? "text-white"
+                    : "hover:text-white"
                 )}
+                style={active
+                  ? { background: "rgba(110,61,35,0.7)", color: "#faf9f7" }
+                  : { color: "rgba(238,236,233,0.55)" }
+                }
+                onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "rgba(153,179,183,0.08)"; e.currentTarget.style.color = "#eeece9"; }}
+                onMouseLeave={(e) => { if (!active) { e.currentTarget.style.background = ""; e.currentTarget.style.color = "rgba(238,236,233,0.55)"; } }}
               >
-                <Icon size={18} className={active ? "text-indigo-600" : ""} />
+                <Icon
+                  size={16}
+                  style={active ? { color: "#9d7960" } : { color: "rgba(153,179,183,0.6)" }}
+                />
                 {label}
               </Link>
             );
           })}
         </nav>
-        <div className="p-4 border-t border-gray-200">
-          <p className="text-xs text-gray-400 text-center">
+
+        {/* Footer */}
+        <div className="p-4 border-t" style={{ borderColor: "rgba(153,179,183,0.12)" }}>
+          <p className="text-xs text-center" style={{ color: "rgba(153,179,183,0.4)" }}>
             {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
           </p>
         </div>
       </aside>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 flex items-stretch">
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-stretch border-t"
+        style={{ background: "#1b2824", borderColor: "rgba(153,179,183,0.12)" }}
+      >
         {mobileLinks.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
             <Link
               key={href}
               href={href}
-              className={cn(
-                "flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition-colors",
-                active ? "text-indigo-600" : "text-gray-400"
-              )}
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors"
+              style={{ color: active ? "#9d7960" : "rgba(238,236,233,0.4)" }}
             >
-              <Icon size={20} />
+              <Icon size={19} />
               {label}
             </Link>
           );
