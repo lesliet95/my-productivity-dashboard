@@ -67,16 +67,16 @@ export default function PullToRefresh() {
       <div
         className="mb-2 w-9 h-9 rounded-full flex items-center justify-center shadow-md"
         style={{
-          background: "#1b2824",
+          background: "#07203f",
           opacity: Math.max(0.3, progress),
           transform: `scale(${0.6 + progress * 0.4})`,
           transition: refreshing ? "transform 0.2s ease" : "none",
         }}
       >
         {refreshing ? (
-          <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: "rgba(153,179,183,0.3)", borderTopColor: "#99b3b7" }} />
+          <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: "rgba(217,170,144,0.3)", borderTopColor: "#d9aa90" }} />
         ) : (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#99b3b7" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d9aa90" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
             style={{ transform: `rotate(${ready ? 180 : progress * 160}deg)`, transition: "transform 0.15s ease" }}>
             <path d="M12 5v14M5 12l7 7 7-7" />
           </svg>

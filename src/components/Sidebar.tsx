@@ -67,10 +67,10 @@ export default function Sidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 flex-col" style={{ background: "#1b2824" }}>
-        <div className="p-6 border-b" style={{ borderColor: "rgba(153,179,183,0.12)" }}>
+      <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 flex-col" style={{ background: "#07203f" }}>
+        <div className="p-6 border-b" style={{ borderColor: "rgba(235,222,212,0.12)" }}>
           <h1 className="text-base font-semibold tracking-wide" style={{ color: "#eeece9" }}>{title}</h1>
-          <p className="text-xs mt-0.5" style={{ color: "rgba(153,179,183,0.7)" }}>{subtitle}</p>
+          <p className="text-xs mt-0.5" style={{ color: "rgba(217,170,144,0.7)" }}>{subtitle}</p>
         </div>
 
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
@@ -79,19 +79,19 @@ export default function Sidebar() {
             return (
               <Link key={href} href={href}
                 className={cn("flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all", active ? "text-white" : "hover:text-white")}
-                style={active ? { background: "rgba(110,61,35,0.7)", color: "#faf9f7" } : { color: "rgba(238,236,233,0.55)" }}
-                onMouseEnter={(e) => { if (!active) { e.currentTarget.style.background = "rgba(153,179,183,0.08)"; e.currentTarget.style.color = "#eeece9"; } }}
+                style={active ? { background: "rgba(166,94,70,0.55)", color: "#faf9f7" } : { color: "rgba(238,236,233,0.55)" }}
+                onMouseEnter={(e) => { if (!active) { e.currentTarget.style.background = "rgba(217,170,144,0.08)"; e.currentTarget.style.color = "#eeece9"; } }}
                 onMouseLeave={(e) => { if (!active) { e.currentTarget.style.background = ""; e.currentTarget.style.color = "rgba(238,236,233,0.55)"; } }}
               >
-                <Icon size={16} style={active ? { color: "#9d7960" } : { color: "rgba(153,179,183,0.6)" }} />
+                <Icon size={16} style={active ? { color: "#d9aa90" } : { color: "rgba(217,170,144,0.5)" }} />
                 {label}
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t" style={{ borderColor: "rgba(153,179,183,0.12)" }}>
-          <p className="text-xs text-center" style={{ color: "rgba(153,179,183,0.4)" }}>
+        <div className="p-4 border-t" style={{ borderColor: "rgba(235,222,212,0.12)" }}>
+          <p className="text-xs text-center" style={{ color: "rgba(217,170,144,0.35)" }}>
             {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
           </p>
         </div>
@@ -99,13 +99,13 @@ export default function Sidebar() {
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-stretch border-t"
-        style={{ background: "#1b2824", borderColor: "rgba(153,179,183,0.12)" }}>
+        style={{ background: "#07203f", borderColor: "rgba(235,222,212,0.12)" }}>
         {mobileLinks.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
             <Link key={href} href={href}
               className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors"
-              style={{ color: active ? "#9d7960" : "rgba(238,236,233,0.4)" }}>
+              style={{ color: active ? "#d9aa90" : "rgba(238,236,233,0.4)" }}>
               <Icon size={19} />
               {label}
             </Link>
@@ -117,7 +117,7 @@ export default function Sidebar() {
           <button
             onClick={() => setMoreOpen(true)}
             className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors"
-            style={{ color: isMoreActive || moreOpen ? "#9d7960" : "rgba(238,236,233,0.4)" }}
+            style={{ color: isMoreActive || moreOpen ? "#d9aa90" : "rgba(238,236,233,0.4)" }}
           >
             <MoreHorizontal size={19} />
             More
@@ -137,10 +137,10 @@ export default function Sidebar() {
           {/* Sheet */}
           <div
             className="md:hidden fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl pb-8 pt-3"
-            style={{ background: "#1b2824", borderTop: "1px solid rgba(153,179,183,0.15)" }}
+            style={{ background: "#07203f", borderTop: "1px solid rgba(235,222,212,0.12)" }}
           >
             {/* Handle + header */}
-            <div className="flex items-center justify-between px-5 pb-3 border-b" style={{ borderColor: "rgba(153,179,183,0.12)" }}>
+            <div className="flex items-center justify-between px-5 pb-3 border-b" style={{ borderColor: "rgba(235,222,212,0.12)" }}>
               <div className="w-10 h-1 rounded-full mx-auto absolute left-1/2 -translate-x-1/2 top-2" style={{ background: "rgba(153,179,183,0.3)" }} />
               <p className="text-xs font-semibold mt-2" style={{ color: "rgba(238,236,233,0.5)" }}>All Pages</p>
               <button onClick={() => setMoreOpen(false)} style={{ color: "rgba(238,236,233,0.4)" }}>
@@ -157,7 +157,7 @@ export default function Sidebar() {
                     onClick={() => setMoreOpen(false)}
                     className="flex flex-col items-center gap-2 py-4 px-2 rounded-xl transition-colors"
                     style={active
-                      ? { background: "rgba(110,61,35,0.5)", color: "#9d7960" }
+                      ? { background: "rgba(110,61,35,0.5)", color: "#d9aa90" }
                       : { color: "rgba(238,236,233,0.55)" }
                     }
                   >

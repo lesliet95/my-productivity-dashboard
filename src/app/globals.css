@@ -3,21 +3,21 @@
 @tailwind utilities;
 
 :root {
-  --background: #eeece9;
-  --foreground: #1b2824;
+  --background: #ebded4;
+  --foreground: #07203f;
 
-  --alabaster: #eeece9;
-  --pewter: #99b3b7;
-  --bronze: #9d7960;
-  --mahogany: #6e3d23;
-  --slate: #304e4d;
-  --obsidian: #1b2824;
+  --alabaster: #ebded4;
+  --pewter: #d9aa90;
+  --bronze: #a65e46;
+  --mahogany: #07203f;
+  --slate: #3d6080;
+  --obsidian: #07203f;
 
-  /* Card surface — warm white, slightly lighter than alabaster */
-  --card-bg: #faf9f7;
-  --card-border: rgba(157, 121, 96, 0.15);
-  --card-shadow: 0 1px 3px rgba(27, 40, 36, 0.06), 0 4px 16px rgba(27, 40, 36, 0.04);
-  --card-shadow-hover: 0 2px 8px rgba(27, 40, 36, 0.10), 0 8px 24px rgba(27, 40, 36, 0.07);
+  /* Card surface — warm white */
+  --card-bg: #f5ede6;
+  --card-border: rgba(166, 94, 70, 0.15);
+  --card-shadow: 0 1px 3px rgba(7, 32, 63, 0.06), 0 4px 16px rgba(7, 32, 63, 0.04);
+  --card-shadow-hover: 0 2px 8px rgba(7, 32, 63, 0.10), 0 8px 24px rgba(7, 32, 63, 0.07);
 }
 
 /* ── Base ──────────────────────────────────────────────────────────────────── */

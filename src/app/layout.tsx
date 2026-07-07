@@ -6,7 +6,7 @@ import PullToRefresh from "@/components/PullToRefresh";
 import ToastProvider from "@/components/ToastProvider";
 
 export const viewport: Viewport = {
-  themeColor: "#1b2824",
+  themeColor: "#07203f",
   width: "device-width",
   initialScale: 1,
 };
