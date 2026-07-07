@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import AuthProvider from "@/components/AuthProvider";
+import PullToRefresh from "@/components/PullToRefresh";
 
 export const viewport: Viewport = {
   themeColor: "#1b2824",
@@ -36,6 +37,7 @@ export default function RootLayout({
       </head>
       <body className="flex min-h-screen bg-alabaster">
         <AuthProvider>
+          <PullToRefresh />
           <Sidebar />
           <main className="flex-1 md:ml-64 p-4 md:p-8 pb-20 md:pb-8">{children}</main>
         </AuthProvider>
