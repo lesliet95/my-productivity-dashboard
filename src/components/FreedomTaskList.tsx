@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
+import { useToast } from "@/components/ToastProvider";
 import {
   toggleFreedomTask, deleteFreedomTask, createFreedomTask,
   updateFreedomTaskDescription, updateFreedomTaskCategory,
@@ -675,16 +676,21 @@ export default function FreedomTaskList({ initialTasks }: { initialTasks: Freedo
   const [showAddRow, setShowAddRow] = useState(false);
   const [tableFilter, setTableFilter] = useState<"all" | "pending" | "completed">("all");
   const [topView, setTopView] = useState<"upcoming" | "calendar">("upcoming");
+  const { toast } = useToast();
 
   function handleToggle(id: number) {
+    const task = tasks.find((t) => t.id === id);
+    const completing = task && !task.completed;
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, completed: !t.completed } : t));
+    if (completing) toast("Task completed ✓");
     startTransition(() => toggleFreedomTask(id));
   }
   function handleDelete(id: number) {
     setTasks((prev) => prev.filter((t) => t.id !== id));
+    toast("Task deleted", "delete");
     startTransition(() => deleteFreedomTask(id));
   }
-  function handleAdd(task: FreedomTask) { setTasks((prev) => [task, ...prev]); }
+  function handleAdd(task: FreedomTask) { setTasks((prev) => [task, ...prev]); toast("Task added ✓"); }
   function handleDescriptionSave(id: number, description: string) {
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, description: description || null } : t));
     startTransition(() => updateFreedomTaskDescription(id, description));
@@ -701,10 +707,12 @@ export default function FreedomTaskList({ initialTasks }: { initialTasks: Freedo
   }
   function handlePriorityChange(id: number, priority: "low" | "medium" | "high") {
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, priority } : t));
+    toast(`Priority set to ${priority}`, "info");
     startTransition(() => updateFreedomTaskPriority(id, priority));
   }
   function handleTitleSave(id: number, title: string) {
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, title } : t));
+    toast("Task updated ✓");
     startTransition(() => updateFreedomTaskTitle(id, title));
   }
 

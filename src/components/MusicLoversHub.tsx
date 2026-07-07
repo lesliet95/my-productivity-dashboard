@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
+import { useToast } from "@/components/ToastProvider";
 import {
   toggleTask, deleteTask, createTask, updateTaskTitle, updateTaskDueDate,
   updateTaskSubtasks, updateTaskPriority, updateTaskDescription,
@@ -158,13 +159,18 @@ function TaskBoard({ tasks, onTasksChange }: { tasks: Task[]; onTasksChange: (ta
   const [newTitle, setNewTitle] = useState("");
   const [newPriority, setNewPriority] = useState<"low" | "medium" | "high">("medium");
   const [adding, setAdding] = useState(false);
+  const { toast } = useToast();
 
   function handleToggle(id: number) {
+    const task = tasks.find((t) => t.id === id);
+    const completing = task && !task.completed;
     onTasksChange(tasks.map((t) => t.id === id ? { ...t, completed: !t.completed } : t));
+    if (completing) toast("Task completed ✓");
     start(() => toggleTask(id));
   }
   function handleDelete(id: number) {
     onTasksChange(tasks.filter((t) => t.id !== id));
+    toast("Task deleted", "delete");
     start(() => deleteTask(id));
   }
   function handleUpdate(id: number, patch: Partial<Task>) {
@@ -177,6 +183,7 @@ function TaskBoard({ tasks, onTasksChange }: { tasks: Task[]; onTasksChange: (ta
     await createTask({ title: newTitle.trim(), priority: newPriority, category: "Music Lovers" });
     onTasksChange([{ id: Date.now(), title: newTitle.trim(), description: null, completed: false, priority: newPriority, due_date: null, category: "Music Lovers", subtasks: [], created_at: new Date().toISOString(), updated_at: new Date().toISOString() }, ...tasks]);
     setNewTitle(""); setNewPriority("medium"); setAdding(false);
+    toast("Task added ✓");
   }
 
   const pending = tasks.filter((t) => !t.completed);
@@ -312,12 +319,15 @@ function ContentCalendar({ posts: initial }: { posts: ContentPost[] }) {
   const [newTitle, setNewTitle] = useState("");
   const [newPlatforms, setNewPlatforms] = useState<Platform[]>([]);
   const [view, setView] = useState<ContentStatus | "all">("all");
+  const { toast } = useToast();
 
   function handleUpdate(id: string, data: Partial<ContentPost>) {
     setPosts((prev) => prev.map((p) => p.id === id ? { ...p, ...data } : p));
+    toast("Post updated ✓");
   }
   function handleDelete(id: string) {
     setPosts((prev) => prev.filter((p) => p.id !== id));
+    toast("Post deleted", "delete");
     start(async () => { await deleteContentPost(id); });
   }
 
@@ -328,6 +338,7 @@ function ContentCalendar({ posts: initial }: { posts: ContentPost[] }) {
     await createContentPost(data);
     setPosts((prev) => [...prev, { ...data, id: `p${Date.now()}`, createdAt: new Date().toISOString() }]);
     setNewTitle(""); setNewPlatforms([]); setAdding(false);
+    toast("Post added ✓");
   }
 
   const filtered = view === "all" ? posts : posts.filter((p) => p.status === view);
@@ -433,16 +444,19 @@ function IdeasBank({ ideas: initial }: { ideas: ContentIdea[] }) {
   const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newPlatforms, setNewPlatforms] = useState<Platform[]>([]);
+  const { toast } = useToast();
 
   function handleUpdate(id: string, data: Partial<ContentIdea>) {
     setIdeas((prev) => prev.map((i) => i.id === id ? { ...i, ...data } : i));
   }
   function handleDelete(id: string) {
     setIdeas((prev) => prev.filter((i) => i.id !== id));
+    toast("Idea deleted", "delete");
     start(async () => { await deleteContentIdea(id); });
   }
   function handlePromote(id: string) {
     setIdeas((prev) => prev.filter((i) => i.id !== id));
+    toast("Idea promoted to calendar ✓");
     start(async () => { await promoteIdeaToPost(id); });
   }
 
@@ -453,6 +467,7 @@ function IdeasBank({ ideas: initial }: { ideas: ContentIdea[] }) {
     await createContentIdea(data);
     setIdeas((prev) => [...prev, { ...data, id: `i${Date.now()}`, createdAt: new Date().toISOString() }]);
     setNewTitle(""); setNewDesc(""); setNewPlatforms([]); setAdding(false);
+    toast("Idea added ✓");
   }
 
   return (

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useTransition, createContext, useContext } from "react";
+import { useToast } from "@/components/ToastProvider";
 import {
   toggleTask, deleteTask, createTask, updateTaskDescription, updateTaskCategory,
   updateTaskDueDate, updateTaskSubtasks, updateTaskPriority, updateTaskTitle,
@@ -757,19 +758,25 @@ export default function TaskList({ initialTasks, partnerCategories }: { initialT
   const [tasks, setTasks] = useState(initialTasks);
   const [, startTransition] = useTransition();
   const [showAddRow, setShowAddRow] = useState(false);
+  const { toast } = useToast();
 
   function handleToggle(id: number) {
+    const task = tasks.find((t) => t.id === id);
+    const completing = task && !task.completed;
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, completed: !t.completed } : t));
+    if (completing) toast("Task completed ✓");
     startTransition(() => toggleTask(id));
   }
 
   function handleDelete(id: number) {
     setTasks((prev) => prev.filter((t) => t.id !== id));
+    toast("Task deleted", "delete");
     startTransition(() => deleteTask(id));
   }
 
   function handleAdd(task: Task) {
     setTasks((prev) => [task, ...prev]);
+    toast("Task added ✓");
   }
 
   function handleDescriptionSave(id: number, description: string) {
@@ -792,11 +799,13 @@ export default function TaskList({ initialTasks, partnerCategories }: { initialT
 
   function handlePriorityChange(id: number, priority: "low" | "medium" | "high") {
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, priority } : t));
+    toast(`Priority set to ${priority}`, "info");
     startTransition(() => updateTaskPriority(id, priority));
   }
 
   function handleTitleSave(id: number, title: string) {
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, title } : t));
+    toast("Task updated ✓");
     startTransition(() => updateTaskTitle(id, title));
   }
 

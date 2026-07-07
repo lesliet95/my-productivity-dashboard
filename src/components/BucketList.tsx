@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useToast } from "@/components/ToastProvider";
 import {
   addBucketItem, toggleBucketItem, deleteBucketItem, updateBucketItem,
   type BucketListItem, type BucketListData,
@@ -275,6 +276,7 @@ export default function BucketList({ initialData }: { initialData: BucketListDat
   const [showDone, setShowDone] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [, startTransition] = useTransition();
+  const { toast } = useToast();
 
   const total = items.length;
   const completed = items.filter((i) => i.completed).length;
@@ -297,21 +299,27 @@ export default function BucketList({ initialData }: { initialData: BucketListDat
   const uncategorized = filtered.filter((i) => !i.category || !CATEGORIES.includes(i.category as Category));
 
   function handleToggle(id: string) {
+    const item = items.find((i) => i.id === id);
+    const completing = item && !item.completed;
     setItems((prev) => prev.map((i) => i.id === id ? { ...i, completed: !i.completed, completedAt: !i.completed ? new Date().toISOString() : undefined } : i));
+    if (completing) toast("Bucket list item completed ✓");
     startTransition(() => toggleBucketItem(id));
   }
   function handleDelete(id: string) {
     setItems((prev) => prev.filter((i) => i.id !== id));
+    toast("Item deleted", "delete");
     startTransition(() => deleteBucketItem(id));
   }
   function handleUpdate(id: string, patch: Partial<Pick<BucketListItem, "imageUrl">>) {
     setItems((prev) => prev.map((i) => i.id === id ? { ...i, ...patch } : i));
+    toast("Updated ✓");
     startTransition(() => updateBucketItem(id, patch));
   }
   function handleAdd(item: { text: string; category: Category; imageUrl?: string }) {
     const optimistic: BucketListItem = { id: crypto.randomUUID(), text: item.text, completed: false, category: item.category, imageUrl: item.imageUrl };
     setItems((prev) => [...prev, optimistic]);
     setShowForm(false);
+    toast("Item added to vision board ✓");
     startTransition(() => addBucketItem(item));
   }
 
