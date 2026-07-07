@@ -11,7 +11,7 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-        alabaster: "#ebded4",
+        alabaster: "#c8b5a2",
         pewter: {
           DEFAULT: "#d9aa90",
           light: "#e8c8b4",
