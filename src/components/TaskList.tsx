@@ -467,7 +467,7 @@ function TableRow({ task, onToggle, onDelete, onDescriptionSave, onCategoryChang
       <tr className={cn("group border-b border-gray-100 hover:bg-gray-50 transition-colors", task.completed && "opacity-50")}>
         <td className="py-2.5 px-4">
           <div className="flex items-center gap-2">
-            <button onClick={() => setExpanded((v) => !v)} className="text-gray-400 hover:text-indigo-500 shrink-0 transition-colors">
+            <button onClick={() => setExpanded((v) => !v)} className="text-gray-600 hover:text-indigo-500 shrink-0 transition-colors">
               <ChevronDown size={13} className={cn("transition-transform", expanded && "rotate-180")} />
             </button>
             <div className="flex items-center gap-1 flex-wrap">
