@@ -99,6 +99,22 @@ function extractMeta(html: string, name: string): string | null {
   return html.match(re)?.[1] ?? null;
 }
 
+// schema.org has several more specific subtypes of "Event" (Eventbrite uses
+// "BusinessEvent", Meetup/Facebook commonly use "SocialEvent", etc.) — match
+// any of them, not just the literal "Event" type.
+const EVENT_TYPES = new Set([
+  "Event", "BusinessEvent", "ChildrensEvent", "ComedyEvent", "CourseInstance",
+  "DanceEvent", "DeliveryEvent", "EducationEvent", "ExhibitionEvent", "Festival",
+  "FoodEvent", "LiteraryEvent", "MusicEvent", "PublicationEvent", "SaleEvent",
+  "ScreeningEvent", "SocialEvent", "SportsEvent", "TheaterEvent", "VisualArtsEvent",
+]);
+
+function isEventType(type: unknown): boolean {
+  if (typeof type === "string") return EVENT_TYPES.has(type) || type.endsWith("Event");
+  if (Array.isArray(type)) return type.some(isEventType);
+  return false;
+}
+
 function findEventNode(data: unknown): Record<string, unknown> | null {
   if (!data) return null;
   if (Array.isArray(data)) {
@@ -110,8 +126,7 @@ function findEventNode(data: unknown): Record<string, unknown> | null {
   }
   if (typeof data === "object") {
     const obj = data as Record<string, unknown>;
-    const type = obj["@type"];
-    if (type === "Event" || (Array.isArray(type) && type.includes("Event"))) return obj;
+    if (isEventType(obj["@type"])) return obj;
     if (Array.isArray(obj["@graph"])) return findEventNode(obj["@graph"]);
   }
   return null;
@@ -128,8 +143,13 @@ function formatLocation(loc: unknown): string | null {
     address = l.address;
   } else if (l.address && typeof l.address === "object") {
     const a = l.address as Record<string, unknown>;
+    const streetAddress = typeof a.streetAddress === "string" ? a.streetAddress : null;
+    const locality = typeof a.addressLocality === "string" ? a.addressLocality : null;
+    // Some sites (Eventbrite) fold the city/state into streetAddress itself —
+    // don't repeat them if so.
+    const alreadyIncludesLocality = streetAddress && locality && streetAddress.includes(locality);
     address =
-      [a.streetAddress, a.addressLocality, a.addressRegion, a.postalCode]
+      [streetAddress, alreadyIncludesLocality ? null : a.addressLocality, alreadyIncludesLocality ? null : a.addressRegion, alreadyIncludesLocality ? null : a.postalCode]
         .filter((x) => typeof x === "string" && x)
         .join(", ") || null;
   }
@@ -234,14 +254,17 @@ export async function extractEventFromUrl(url: string): Promise<ExtractedEvent> 
     const endDate = typeof eventNode.endDate === "string" ? eventNode.endDate : null;
     const description = typeof eventNode.description === "string" ? eventNode.description : null;
     const dateMatch = startDate?.match(/^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/);
-    const endMatch = endDate?.match(/T(\d{2}:\d{2})/);
+    const endMatch = endDate?.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+    // Our event model only stores one date, so an end time only makes sense
+    // if the event doesn't actually span multiple days.
+    const endTimeSameDay = endMatch && endMatch[1] === dateMatch?.[1] ? endMatch[2] : null;
 
     if (name || dateMatch) {
       return {
         title: name || pageTitle || "Untitled event",
         date: dateMatch?.[1] ?? null,
         time: dateMatch?.[2] ?? null,
-        end_time: endMatch?.[1] ?? null,
+        end_time: endTimeSameDay,
         location: formatLocation(eventNode.location),
         description: (description ?? metaDescription)?.slice(0, 300) ?? null,
       };
