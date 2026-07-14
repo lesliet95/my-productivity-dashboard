@@ -242,12 +242,16 @@ export async function extractEventFromUrl(url: string): Promise<ExtractedEvent> 
     }
   }
 
-  // Fallback: Open Graph tags + a light scan of the visible text
+  // Fallback: Open Graph tags + a light scan of the visible text. Some sites
+  // (e.g. Facebook, which shows crawlers a stripped-down page with no real
+  // body) only surface the date inside the meta description itself, so scan
+  // that first before falling through to the rendered body text.
   const bodyText = stripHtml(html).slice(0, 6000);
+  const scanText = [metaDescription, bodyText].filter(Boolean).join(" ");
   return {
     title: pageTitle || "Untitled event",
-    date: findDateInText(bodyText),
-    time: findTimeInText(bodyText),
+    date: findDateInText(scanText),
+    time: findTimeInText(scanText),
     location: null,
     description: metaDescription,
   };
