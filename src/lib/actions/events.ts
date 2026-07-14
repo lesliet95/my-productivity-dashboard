@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { google } from "googleapis";
-import Anthropic from "@anthropic-ai/sdk";
 import { authOptions } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 
@@ -73,7 +72,14 @@ export async function deleteEvent(id: number): Promise<void> {
   revalidatePath("/events");
 }
 
-// ── Link extraction (Claude) ────────────────────────────────────────────────
+// ── Link extraction (free — no API calls) ───────────────────────────────────
+//
+// Most event platforms (Eventbrite, Meetup, Facebook Events, Ticketmaster,
+// WordPress event plugins, etc.) embed schema.org "Event" JSON-LD directly in
+// the page, so we parse that rather than paying for an LLM call. If a page
+// has no structured data we fall back to Open Graph tags + light regex
+// scanning for a date/time in the visible text; anything we can't find is
+// just left blank for the user to fill in by hand.
 
 function stripHtml(html: string): string {
   return html
@@ -91,11 +97,87 @@ function extractMeta(html: string, name: string): string | null {
   return html.match(re)?.[1] ?? null;
 }
 
-function extractEventJsonLd(html: string): string | null {
-  const matches = Array.from(html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi));
-  for (const m of matches) {
-    if (/"@type"\s*:\s*"Event"/i.test(m[1])) return m[1].slice(0, 3000);
+function findEventNode(data: unknown): Record<string, unknown> | null {
+  if (!data) return null;
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      const found = findEventNode(item);
+      if (found) return found;
+    }
+    return null;
   }
+  if (typeof data === "object") {
+    const obj = data as Record<string, unknown>;
+    const type = obj["@type"];
+    if (type === "Event" || (Array.isArray(type) && type.includes("Event"))) return obj;
+    if (Array.isArray(obj["@graph"])) return findEventNode(obj["@graph"]);
+  }
+  return null;
+}
+
+function formatLocation(loc: unknown): string | null {
+  if (!loc) return null;
+  if (typeof loc === "string") return loc;
+  if (typeof loc !== "object") return null;
+  const l = loc as Record<string, unknown>;
+  const name = typeof l.name === "string" ? l.name : null;
+  let address: string | null = null;
+  if (typeof l.address === "string") {
+    address = l.address;
+  } else if (l.address && typeof l.address === "object") {
+    const a = l.address as Record<string, unknown>;
+    address =
+      [a.streetAddress, a.addressLocality, a.addressRegion, a.postalCode]
+        .filter((x) => typeof x === "string" && x)
+        .join(", ") || null;
+  }
+  return [name, address].filter(Boolean).join(" — ") || null;
+}
+
+function findEventJsonLd(html: string): Record<string, unknown> | null {
+  const scripts = Array.from(
+    html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)
+  );
+  for (const s of scripts) {
+    try {
+      const found = findEventNode(JSON.parse(s[1].trim()));
+      if (found) return found;
+    } catch {
+      // malformed JSON-LD — skip
+    }
+  }
+  return null;
+}
+
+const MONTHS = [
+  "january", "february", "march", "april", "may", "june",
+  "july", "august", "september", "october", "november", "december",
+];
+
+function findDateInText(text: string): string | null {
+  const named = text.match(new RegExp(`\\b(${MONTHS.join("|")})\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?,?\\s+(\\d{4})\\b`, "i"));
+  if (named) {
+    const month = MONTHS.indexOf(named[1].toLowerCase()) + 1;
+    return `${named[3]}-${String(month).padStart(2, "0")}-${String(Number(named[2])).padStart(2, "0")}`;
+  }
+  const iso = text.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const slash = text.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);
+  if (slash) return `${slash[3]}-${String(Number(slash[1])).padStart(2, "0")}-${String(Number(slash[2])).padStart(2, "0")}`;
+  return null;
+}
+
+function findTimeInText(text: string): string | null {
+  const ampm = text.match(/\b(\d{1,2}):(\d{2})\s*(am|pm)\b/i);
+  if (ampm) {
+    let h = Number(ampm[1]);
+    const period = ampm[3].toLowerCase();
+    if (period === "pm" && h !== 12) h += 12;
+    if (period === "am" && h === 12) h = 0;
+    return `${String(h).padStart(2, "0")}:${ampm[2]}`;
+  }
+  const military = text.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+  if (military) return `${military[1].padStart(2, "0")}:${military[2]}`;
   return null;
 }
 
@@ -138,51 +220,36 @@ export async function extractEventFromUrl(url: string): Promise<ExtractedEvent> 
     clearTimeout(timeout);
   }
 
-  const pageTitle = extractMeta(html, "og:title") ?? html.match(/<title>([^<]*)<\/title>/i)?.[1] ?? "";
+  const pageTitle = extractMeta(html, "og:title") ?? html.match(/<title>([^<]*)<\/title>/i)?.[1]?.trim() ?? "";
   const metaDescription = extractMeta(html, "og:description");
-  const jsonLd = extractEventJsonLd(html);
+
+  // Preferred path: structured schema.org Event data
+  const eventNode = findEventJsonLd(html);
+  if (eventNode) {
+    const name = typeof eventNode.name === "string" ? eventNode.name : null;
+    const startDate = typeof eventNode.startDate === "string" ? eventNode.startDate : null;
+    const description = typeof eventNode.description === "string" ? eventNode.description : null;
+    const dateMatch = startDate?.match(/^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/);
+
+    if (name || dateMatch) {
+      return {
+        title: name || pageTitle || "Untitled event",
+        date: dateMatch?.[1] ?? null,
+        time: dateMatch?.[2] ?? null,
+        location: formatLocation(eventNode.location),
+        description: (description ?? metaDescription)?.slice(0, 300) ?? null,
+      };
+    }
+  }
+
+  // Fallback: Open Graph tags + a light scan of the visible text
   const bodyText = stripHtml(html).slice(0, 6000);
-
-  const context = [
-    `Page title: ${pageTitle}`,
-    metaDescription ? `Meta description: ${metaDescription}` : null,
-    jsonLd ? `Structured event data (JSON-LD):\n${jsonLd}` : null,
-    `Page text:\n${bodyText}`,
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error("ANTHROPIC_API_KEY isn't configured — add it to .env.local");
-  }
-
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const today = new Date().toISOString().slice(0, 10);
-
-  const msg = await anthropic.messages.create({
-    model: "claude-sonnet-5",
-    max_tokens: 500,
-    system: `You extract event details from web page content. Today's date is ${today}. Respond with ONLY a JSON object (no markdown fences, no commentary) with keys: title (string), date (YYYY-MM-DD, or null if unknown), time (24-hour HH:MM local time, or null if not specified), location (string or null), description (one short sentence, or null). Resolve any relative dates (e.g. "next Saturday") using today's date.`,
-    messages: [{ role: "user", content: context }],
-  });
-
-  const text = msg.content.find((b) => b.type === "text")?.text ?? "{}";
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("Couldn't find event details on that page");
-
-  let obj: Record<string, unknown>;
-  try {
-    obj = JSON.parse(jsonMatch[0]);
-  } catch {
-    throw new Error("Couldn't parse event details from that page");
-  }
-
   return {
-    title: typeof obj.title === "string" && obj.title.trim() ? obj.title.trim() : pageTitle || "Untitled event",
-    date: typeof obj.date === "string" && obj.date ? obj.date : null,
-    time: typeof obj.time === "string" && obj.time ? obj.time : null,
-    location: typeof obj.location === "string" && obj.location ? obj.location : null,
-    description: typeof obj.description === "string" && obj.description ? obj.description : null,
+    title: pageTitle || "Untitled event",
+    date: findDateInText(bodyText),
+    time: findTimeInText(bodyText),
+    location: null,
+    description: metaDescription,
   };
 }
 

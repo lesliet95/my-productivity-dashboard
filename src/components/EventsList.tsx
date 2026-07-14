@@ -186,7 +186,7 @@ export default function EventsList({ initialEvents }: { initialEvents: Event[] }
       {sorted.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
           <p className="text-lg">No events yet</p>
-          <p className="text-sm mt-1">Paste a link above and let Claude fill in the details.</p>
+          <p className="text-sm mt-1">Paste a link above to pull in the title, date, and time automatically.</p>
         </div>
       ) : (
         <div className="border rounded-xl overflow-x-auto" style={{ borderColor: "var(--card-border)" }}>
