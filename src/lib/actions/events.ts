@@ -268,6 +268,9 @@ export async function extractEventFromUrl(url: string): Promise<ExtractedEvent> 
 
 // ── Google Calendar sync ─────────────────────────────────────────────────────
 
+// Google Calendar event colorId "11" = Tomato
+const TOMATO_COLOR_ID = "11";
+
 async function getCalendarClient() {
   const session = await getServerSession(authOptions);
   if (!session?.accessToken) throw new Error("Connect Google Calendar first");
@@ -331,6 +334,7 @@ export async function setEventCalendarSync(
             summary: event.title,
             location: event.location ?? undefined,
             description,
+            colorId: TOMATO_COLOR_ID,
             start: { dateTime: `${event.date}T${event.time}:00`, timeZone },
             end: { dateTime: `${end.date}T${end.time}:00`, timeZone },
           };
@@ -339,6 +343,7 @@ export async function setEventCalendarSync(
           summary: event.title,
           location: event.location ?? undefined,
           description,
+          colorId: TOMATO_COLOR_ID,
           start: { date: event.date },
           end: { date: nextDay(event.date) },
         };
