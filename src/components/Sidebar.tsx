@@ -44,6 +44,7 @@ const ownerMobileLinks = [
 ];
 
 const partnerMobileLinks = [
+  { href: "/events",       label: "Events",  icon: CalendarPlus },
   { href: "/tasks",        label: "Tasks",   icon: CheckSquare },
   { href: "/wedding",      label: "Wedding", icon: Heart },
   { href: "/music-lovers", label: "Music",   icon: Music },
