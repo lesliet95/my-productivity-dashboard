@@ -11,6 +11,7 @@ export type Event = {
   title: string;
   date: string;
   time: string | null;
+  end_time: string | null;
   location: string | null;
   description: string | null;
   source_url: string | null;
@@ -32,12 +33,13 @@ async function ensureTable() {
     )
   `;
   await getDb()`ALTER TABLE events ADD COLUMN IF NOT EXISTS google_event_id TEXT`;
+  await getDb()`ALTER TABLE events ADD COLUMN IF NOT EXISTS end_time TEXT`;
 }
 
 export async function getEvents(): Promise<Event[]> {
   await ensureTable();
   const rows = await getDb()`
-    SELECT id, title, TO_CHAR(date, 'YYYY-MM-DD') AS date, time, location, description, source_url, google_event_id, created_at
+    SELECT id, title, TO_CHAR(date, 'YYYY-MM-DD') AS date, time, end_time, location, description, source_url, google_event_id, created_at
     FROM events
     ORDER BY date ASC, time ASC
   `;
@@ -49,9 +51,9 @@ export async function createEvent(
 ): Promise<Event> {
   await ensureTable();
   const rows = await getDb()`
-    INSERT INTO events (title, date, time, location, description, source_url)
-    VALUES (${data.title}, ${data.date}, ${data.time ?? null}, ${data.location ?? null}, ${data.description ?? null}, ${data.source_url ?? null})
-    RETURNING id, title, TO_CHAR(date, 'YYYY-MM-DD') AS date, time, location, description, source_url, google_event_id, created_at
+    INSERT INTO events (title, date, time, end_time, location, description, source_url)
+    VALUES (${data.title}, ${data.date}, ${data.time ?? null}, ${data.end_time ?? null}, ${data.location ?? null}, ${data.description ?? null}, ${data.source_url ?? null})
+    RETURNING id, title, TO_CHAR(date, 'YYYY-MM-DD') AS date, time, end_time, location, description, source_url, google_event_id, created_at
   `;
   revalidatePath("/events");
   return rows[0] as Event;
@@ -185,6 +187,7 @@ export type ExtractedEvent = {
   title: string;
   date: string | null;
   time: string | null;
+  end_time: string | null;
   location: string | null;
   description: string | null;
 };
@@ -228,14 +231,17 @@ export async function extractEventFromUrl(url: string): Promise<ExtractedEvent> 
   if (eventNode) {
     const name = typeof eventNode.name === "string" ? eventNode.name : null;
     const startDate = typeof eventNode.startDate === "string" ? eventNode.startDate : null;
+    const endDate = typeof eventNode.endDate === "string" ? eventNode.endDate : null;
     const description = typeof eventNode.description === "string" ? eventNode.description : null;
     const dateMatch = startDate?.match(/^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/);
+    const endMatch = endDate?.match(/T(\d{2}:\d{2})/);
 
     if (name || dateMatch) {
       return {
         title: name || pageTitle || "Untitled event",
         date: dateMatch?.[1] ?? null,
         time: dateMatch?.[2] ?? null,
+        end_time: endMatch?.[1] ?? null,
         location: formatLocation(eventNode.location),
         description: (description ?? metaDescription)?.slice(0, 300) ?? null,
       };
@@ -245,13 +251,16 @@ export async function extractEventFromUrl(url: string): Promise<ExtractedEvent> 
   // Fallback: Open Graph tags + a light scan of the visible text. Some sites
   // (e.g. Facebook, which shows crawlers a stripped-down page with no real
   // body) only surface the date inside the meta description itself, so scan
-  // that first before falling through to the rendered body text.
+  // that first before falling through to the rendered body text. There's no
+  // reliable way to spot an end time in freeform text, so that's always left
+  // for the user to fill in on this path.
   const bodyText = stripHtml(html).slice(0, 6000);
   const scanText = [metaDescription, bodyText].filter(Boolean).join(" ");
   return {
     title: pageTitle || "Untitled event",
     date: findDateInText(scanText),
     time: findTimeInText(scanText),
+    end_time: null,
     location: null,
     description: metaDescription,
   };
@@ -293,7 +302,7 @@ function addMinutes(date: string, time: string, minutesToAdd: number): { date: s
 export async function setEventCalendarSync(id: number, sync: boolean): Promise<{ google_event_id: string | null }> {
   await ensureTable();
   const rows = await getDb()`
-    SELECT id, title, TO_CHAR(date, 'YYYY-MM-DD') AS date, time, location, description, source_url, google_event_id
+    SELECT id, title, TO_CHAR(date, 'YYYY-MM-DD') AS date, time, end_time, location, description, source_url, google_event_id
     FROM events WHERE id = ${id}
   `;
   const event = rows[0] as (Event & { google_event_id: string | null }) | undefined;
@@ -312,7 +321,9 @@ export async function setEventCalendarSync(id: number, sync: boolean): Promise<{
 
     const requestBody = event.time
       ? (() => {
-          const end = addMinutes(event.date, event.time!, 60);
+          const end = event.end_time
+            ? { date: event.date, time: event.end_time }
+            : addMinutes(event.date, event.time!, 60);
           return {
             summary: event.title,
             location: event.location ?? undefined,

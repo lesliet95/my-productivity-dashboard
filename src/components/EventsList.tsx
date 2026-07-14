@@ -13,11 +13,18 @@ function formatDate(date: string) {
 }
 
 function formatTime(time: string | null) {
-  if (!time) return "—";
+  if (!time) return null;
   const [h, m] = time.split(":").map(Number);
   const period = h >= 12 ? "PM" : "AM";
   const hour12 = h % 12 === 0 ? 12 : h % 12;
   return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
+function formatTimeRange(time: string | null, endTime: string | null) {
+  const start = formatTime(time);
+  if (!start) return "—";
+  const end = formatTime(endTime);
+  return end ? `${start} – ${end}` : start;
 }
 
 // ── Add form ─────────────────────────────────────────────────────────────────
@@ -34,6 +41,7 @@ function AddEventForm({ onAdd, onClose }: {
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
 
@@ -45,6 +53,7 @@ function AddEventForm({ onAdd, onClose }: {
       setTitle(data.title);
       setDate(data.date ?? "");
       setTime(data.time ?? "");
+      setEndTime(data.end_time ?? "");
       setLocation(data.location ?? "");
       setDescription(data.description ?? "");
       setShowFields(true);
@@ -65,6 +74,7 @@ function AddEventForm({ onAdd, onClose }: {
         title: title.trim(),
         date,
         time: time || null,
+        end_time: endTime || null,
         location: location.trim() || null,
         description: description.trim() || null,
         source_url: url.trim() || null,
@@ -102,9 +112,17 @@ function AddEventForm({ onAdd, onClose }: {
             <input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="Title"
               className="col-span-2 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
-            <input type="time" value={time} onChange={(e) => setTime(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
+              className="col-span-2 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-gray-400">Start time</span>
+              <input type="time" value={time} onChange={(e) => setTime(e.target.value)}
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-gray-400">End time</span>
+              <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)}
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
+            </label>
             <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location (optional)"
               className="col-span-2 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
             <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Notes (optional)"
@@ -205,7 +223,7 @@ export default function EventsList({ initialEvents }: { initialEvents: Event[] }
                   <tr key={event.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors group">
                     <td className="px-4 py-3 font-medium text-gray-900">{event.title}</td>
                     <td className="px-4 py-3 text-gray-700 whitespace-nowrap">{formatDate(event.date)}</td>
-                    <td className="px-4 py-3 text-gray-700 whitespace-nowrap">{formatTime(event.time)}</td>
+                    <td className="px-4 py-3 text-gray-700 whitespace-nowrap">{formatTimeRange(event.time, event.end_time)}</td>
                     <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate">{event.location ?? "—"}</td>
                     <td className="px-4 py-3">
                       {event.source_url ? (
