@@ -2,7 +2,7 @@ import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
 // Routes the partner is allowed to access
-const PARTNER_ALLOWED = ["/music-lovers", "/wedding", "/tasks"];
+const PARTNER_ALLOWED = ["/music-lovers", "/wedding", "/tasks", "/events"];
 
 export default withAuth(
   function middleware(req) {
