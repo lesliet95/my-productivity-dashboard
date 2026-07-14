@@ -174,7 +174,8 @@ export default function EventsList({ initialEvents }: { initialEvents: Event[] }
   async function handleToggleCalendar(id: number, checked: boolean) {
     setSyncingIds((prev) => new Set(prev).add(id));
     try {
-      const { google_event_id } = await setEventCalendarSync(id, checked);
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const { google_event_id } = await setEventCalendarSync(id, checked, timeZone);
       setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, google_event_id } : e)));
       toast(checked ? "Added to Google Calendar ✓" : "Removed from Google Calendar");
     } catch (e) {

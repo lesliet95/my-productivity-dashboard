@@ -299,7 +299,12 @@ function addMinutes(date: string, time: string, minutesToAdd: number): { date: s
   return { date: newDate, time: newTime };
 }
 
-export async function setEventCalendarSync(id: number, sync: boolean): Promise<{ google_event_id: string | null }> {
+export async function setEventCalendarSync(
+  id: number,
+  sync: boolean,
+  timeZone: string
+): Promise<{ google_event_id: string | null }> {
+  timeZone = timeZone || "UTC";
   await ensureTable();
   const rows = await getDb()`
     SELECT id, title, TO_CHAR(date, 'YYYY-MM-DD') AS date, time, end_time, location, description, source_url, google_event_id
@@ -313,8 +318,6 @@ export async function setEventCalendarSync(id: number, sync: boolean): Promise<{
   if (sync) {
     if (event.google_event_id) return { google_event_id: event.google_event_id };
 
-    const calMeta = await calendar.calendars.get({ calendarId: "primary" });
-    const timeZone = calMeta.data.timeZone ?? "UTC";
     const description =
       [event.description, event.source_url ? `Source: ${event.source_url}` : null].filter(Boolean).join("\n\n") ||
       undefined;
