@@ -324,6 +324,9 @@ export async function setEventCalendarSync(
     const description =
       [event.description, event.source_url ? `Source: ${event.source_url}` : null].filter(Boolean).join("\n\n") ||
       undefined;
+    const attendees = process.env.EVENT_ATTENDEE_EMAIL
+      ? [{ email: process.env.EVENT_ATTENDEE_EMAIL }]
+      : undefined;
 
     const requestBody = event.time
       ? (() => {
@@ -335,6 +338,7 @@ export async function setEventCalendarSync(
             location: event.location ?? undefined,
             description,
             colorId: TOMATO_COLOR_ID,
+            attendees,
             start: { dateTime: `${event.date}T${event.time}:00`, timeZone },
             end: { dateTime: `${end.date}T${end.time}:00`, timeZone },
           };
@@ -344,11 +348,12 @@ export async function setEventCalendarSync(
           location: event.location ?? undefined,
           description,
           colorId: TOMATO_COLOR_ID,
+          attendees,
           start: { date: event.date },
           end: { date: nextDay(event.date) },
         };
 
-    const created = await calendar.events.insert({ calendarId: "primary", requestBody });
+    const created = await calendar.events.insert({ calendarId: "primary", requestBody, sendUpdates: "all" });
     const googleEventId = created.data.id ?? null;
     await getDb()`UPDATE events SET google_event_id = ${googleEventId} WHERE id = ${id}`;
     revalidatePath("/events");
