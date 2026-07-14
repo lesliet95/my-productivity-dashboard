@@ -49,14 +49,26 @@ export async function getEvents(): Promise<Event[]> {
 export async function createEvent(
   data: Omit<Event, "id" | "created_at" | "google_event_id">
 ): Promise<Event> {
+  const [created] = await createEvents([data]);
+  return created;
+}
+
+// Used when extraction expands a multi-day event into one row per day.
+export async function createEvents(
+  data: Omit<Event, "id" | "created_at" | "google_event_id">[]
+): Promise<Event[]> {
   await ensureTable();
-  const rows = await getDb()`
-    INSERT INTO events (title, date, time, end_time, location, description, source_url)
-    VALUES (${data.title}, ${data.date}, ${data.time ?? null}, ${data.end_time ?? null}, ${data.location ?? null}, ${data.description ?? null}, ${data.source_url ?? null})
-    RETURNING id, title, TO_CHAR(date, 'YYYY-MM-DD') AS date, time, end_time, location, description, source_url, google_event_id, created_at
-  `;
+  const created: Event[] = [];
+  for (const item of data) {
+    const rows = await getDb()`
+      INSERT INTO events (title, date, time, end_time, location, description, source_url)
+      VALUES (${item.title}, ${item.date}, ${item.time ?? null}, ${item.end_time ?? null}, ${item.location ?? null}, ${item.description ?? null}, ${item.source_url ?? null})
+      RETURNING id, title, TO_CHAR(date, 'YYYY-MM-DD') AS date, time, end_time, location, description, source_url, google_event_id, created_at
+    `;
+    created.push(rows[0] as Event);
+  }
   revalidatePath("/events");
-  return rows[0] as Event;
+  return created;
 }
 
 export async function deleteEvent(id: number): Promise<void> {
@@ -203,14 +215,48 @@ function findTimeInText(text: string): string | null {
   return null;
 }
 
-export type ExtractedEvent = {
-  title: string;
-  date: string | null;
+export type ExtractedEventDay = {
+  date: string;
   time: string | null;
   end_time: string | null;
+};
+
+export type ExtractedEvent = {
+  title: string;
   location: string | null;
   description: string | null;
+  days: ExtractedEventDay[];
 };
+
+const MAX_MULTI_DAY_SPAN = 10;
+
+// Structured event data only gives us one overall start/end, not per-day
+// hours, so a multi-day event (different calendar dates) is expanded into one
+// row per day, repeating the same daily start/end time-of-day — the best
+// approximation available without per-day granularity from the source.
+function buildEventDays(
+  startDateStr: string | null,
+  startTime: string | null,
+  endDateStr: string | null,
+  endTime: string | null
+): ExtractedEventDay[] {
+  if (!startDateStr) return [{ date: "", time: null, end_time: null }];
+
+  if (!endDateStr || endDateStr === startDateStr) {
+    return [{ date: startDateStr, time: startTime, end_time: endDateStr === startDateStr ? endTime : null }];
+  }
+
+  const days: ExtractedEventDay[] = [];
+  let cursor = startDateStr;
+  while (cursor <= endDateStr && days.length < MAX_MULTI_DAY_SPAN) {
+    days.push({ date: cursor, time: startTime, end_time: endTime });
+    cursor = nextDay(cursor);
+  }
+  // Absurdly long or malformed range — fall back to a single day rather than
+  // creating a wall of events.
+  if (cursor <= endDateStr) return [{ date: startDateStr, time: startTime, end_time: null }];
+  return days;
+}
 
 export async function extractEventFromUrl(url: string): Promise<ExtractedEvent> {
   let parsed: URL;
@@ -255,18 +301,13 @@ export async function extractEventFromUrl(url: string): Promise<ExtractedEvent> 
     const description = typeof eventNode.description === "string" ? eventNode.description : null;
     const dateMatch = startDate?.match(/^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/);
     const endMatch = endDate?.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
-    // Our event model only stores one date, so an end time only makes sense
-    // if the event doesn't actually span multiple days.
-    const endTimeSameDay = endMatch && endMatch[1] === dateMatch?.[1] ? endMatch[2] : null;
 
     if (name || dateMatch) {
       return {
         title: name || pageTitle || "Untitled event",
-        date: dateMatch?.[1] ?? null,
-        time: dateMatch?.[2] ?? null,
-        end_time: endTimeSameDay,
         location: formatLocation(eventNode.location),
         description: (description ?? metaDescription)?.slice(0, 300) ?? null,
+        days: buildEventDays(dateMatch?.[1] ?? null, dateMatch?.[2] ?? null, endMatch?.[1] ?? null, endMatch?.[2] ?? null),
       };
     }
   }
@@ -281,11 +322,9 @@ export async function extractEventFromUrl(url: string): Promise<ExtractedEvent> 
   const scanText = [metaDescription, bodyText].filter(Boolean).join(" ");
   return {
     title: pageTitle || "Untitled event",
-    date: findDateInText(scanText),
-    time: findTimeInText(scanText),
-    end_time: null,
     location: null,
     description: metaDescription,
+    days: [{ date: findDateInText(scanText) ?? "", time: findTimeInText(scanText), end_time: null }],
   };
 }
 

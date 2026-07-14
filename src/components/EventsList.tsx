@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTransition } from "react";
 import { useToast } from "@/components/ToastProvider";
 import {
-  createEvent, deleteEvent, extractEventFromUrl, setEventCalendarSync, type Event,
+  createEvents, deleteEvent, extractEventFromUrl, setEventCalendarSync, type Event,
 } from "@/lib/actions/events";
 import { Plus, Trash2, X, ExternalLink, Wand2, Loader } from "lucide-react";
 
@@ -29,8 +29,10 @@ function formatTimeRange(time: string | null, endTime: string | null) {
 
 // ── Add form ─────────────────────────────────────────────────────────────────
 
+type DayDraft = { date: string; time: string; endTime: string };
+
 function AddEventForm({ onAdd, onClose }: {
-  onAdd: (event: Omit<Event, "id" | "created_at" | "google_event_id">) => Promise<void>;
+  onAdd: (events: Omit<Event, "id" | "created_at" | "google_event_id">[]) => Promise<void>;
   onClose: () => void;
 }) {
   const { toast } = useToast();
@@ -39,11 +41,13 @@ function AddEventForm({ onAdd, onClose }: {
   const [saving, setSaving] = useState(false);
   const [showFields, setShowFields] = useState(false);
   const [title, setTitle] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [endTime, setEndTime] = useState("");
+  const [days, setDays] = useState<DayDraft[]>([{ date: "", time: "", endTime: "" }]);
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
+
+  function updateDay(index: number, patch: Partial<DayDraft>) {
+    setDays((prev) => prev.map((d, i) => (i === index ? { ...d, ...patch } : d)));
+  }
 
   async function handleExtract() {
     if (!url.trim()) return;
@@ -51,13 +55,15 @@ function AddEventForm({ onAdd, onClose }: {
     try {
       const data = await extractEventFromUrl(url.trim());
       setTitle(data.title);
-      setDate(data.date ?? "");
-      setTime(data.time ?? "");
-      setEndTime(data.end_time ?? "");
+      setDays(data.days.map((d) => ({ date: d.date ?? "", time: d.time ?? "", endTime: d.end_time ?? "" })));
       setLocation(data.location ?? "");
       setDescription(data.description ?? "");
       setShowFields(true);
-      toast("Event details extracted ✓");
+      toast(
+        data.days.length > 1
+          ? `Extracted a ${data.days.length}-day event ✓`
+          : "Event details extracted ✓"
+      );
     } catch (e) {
       toast(e instanceof Error ? e.message : "Couldn't extract event details", "error");
     } finally {
@@ -67,22 +73,27 @@ function AddEventForm({ onAdd, onClose }: {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim() || !date) return;
+    if (!title.trim() || days.some((d) => !d.date)) return;
     setSaving(true);
     try {
-      await onAdd({
-        title: title.trim(),
-        date,
-        time: time || null,
-        end_time: endTime || null,
-        location: location.trim() || null,
-        description: description.trim() || null,
-        source_url: url.trim() || null,
-      });
+      await onAdd(
+        days.map((d) => ({
+          title: title.trim(),
+          date: d.date,
+          time: d.time || null,
+          end_time: d.endTime || null,
+          location: location.trim() || null,
+          description: description.trim() || null,
+          source_url: url.trim() || null,
+        }))
+      );
     } finally {
       setSaving(false);
     }
   }
+
+  const multiDay = days.length > 1;
+  const canSubmit = !!title.trim() && days.every((d) => d.date) && !saving;
 
   return (
     <form onSubmit={handleSubmit} className="border rounded-xl p-4 mb-5" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
@@ -108,34 +119,44 @@ function AddEventForm({ onAdd, onClose }: {
         </div>
 
         {(showFields || title) && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3">
             <input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="Title"
-              className="col-span-2 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required
-              className="col-span-2 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-gray-400">Start time</span>
-              <input type="time" value={time} onChange={(e) => setTime(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-gray-400">End time</span>
-              <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
-            </label>
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
+
+            {multiDay && (
+              <p className="text-xs text-gray-500">
+                This runs {days.length} days — one event will be created per day below.
+              </p>
+            )}
+
+            <div className="space-y-2">
+              {days.map((day, i) => (
+                <div key={i} className="grid grid-cols-3 gap-2">
+                  <input type="date" value={day.date} onChange={(e) => updateDay(i, { date: e.target.value })} required
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
+                  <input type="time" value={day.time} onChange={(e) => updateDay(i, { time: e.target.value })}
+                    placeholder="Start time"
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
+                  <input type="time" value={day.endTime} onChange={(e) => updateDay(i, { endTime: e.target.value })}
+                    placeholder="End time"
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
+                </div>
+              ))}
+            </div>
+
             <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location (optional)"
-              className="col-span-2 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
             <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Notes (optional)"
-              className="col-span-2 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white" />
           </div>
         )}
 
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600"><X size={16} /></button>
-          <button type="submit" disabled={!title.trim() || !date || saving}
+          <button type="submit" disabled={!canSubmit}
             className="px-4 py-2 text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
             style={{ background: "var(--mahogany)" }}>
-            {saving ? "Adding…" : "Add Event"}
+            {saving ? "Adding…" : multiDay ? `Add ${days.length} Events` : "Add Event"}
           </button>
         </div>
       </div>
@@ -154,12 +175,12 @@ export default function EventsList({ initialEvents }: { initialEvents: Event[] }
 
   const sorted = [...events].sort((a, b) => (a.date + (a.time ?? "")).localeCompare(b.date + (b.time ?? "")));
 
-  async function handleAdd(data: Omit<Event, "id" | "created_at" | "google_event_id">) {
+  async function handleAdd(data: Omit<Event, "id" | "created_at" | "google_event_id">[]) {
     try {
-      const created = await createEvent(data);
-      setEvents((prev) => [...prev, created]);
+      const created = await createEvents(data);
+      setEvents((prev) => [...prev, ...created]);
       setShowForm(false);
-      toast("Event added ✓");
+      toast(created.length > 1 ? `${created.length} events added ✓` : "Event added ✓");
     } catch (e) {
       toast(e instanceof Error ? e.message : "Couldn't add event", "error");
     }
