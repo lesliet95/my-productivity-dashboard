@@ -381,9 +381,16 @@ const DEFAULT_CARDS: CardBenefitData[] = [
     id: "spark-cash-plus",
     name: "Capital One Spark Cash Plus®",
     annualFee: 150,
-    tagline: "ANNUAL FEE ANALYSIS — 2026 | EXCLUDES $2,000 SIGN-UP BONUS",
+    tagline: "ANNUAL FEE ANALYSIS — 2026",
     accentColor: "amber",
     benefits: [
+      {
+        id: "signup-bonus",
+        benefit: "$1,000 Cash Bonus",
+        subtitle: "After $10,000 spend in first 3 months",
+        maxValue: 1000,
+        nonOrganic: { notes: "One-time bonus for hitting the spend threshold", value: "TBD", icon: "hourglass" },
+      },
       {
         id: "cash-back-unlimited",
         benefit: "2% Unlimited Cash Back",
