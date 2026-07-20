@@ -199,12 +199,18 @@ const POINTS_RATES: Record<string, PointsCategory[]> = {
     { category: "Internet, Cable & Phone",          multiplier: "3x",  note: "First $150K/yr combined — internet, cable TV, landline/wireless phone services" },
     { category: "Everything else",                  multiplier: "1x" },
   ],
+  "spark-cash-plus": [
+    { category: "Travel (Capital One Business Travel)", multiplier: "5%", note: "Hotels, vacation rentals & rental cars booked through the portal" },
+    { category: "Everything else",                       multiplier: "2%", note: "Unlimited — no caps or category restrictions" },
+  ],
 };
 
 const MULTIPLIER_COLOR: Record<string, string> = {
   "10x": "bg-emerald-100 text-emerald-700",
   "5x":  "bg-blue-100 text-blue-700",
+  "5%":  "bg-blue-100 text-blue-700",
   "3x":  "bg-indigo-100 text-indigo-700",
+  "2%":  "bg-amber-100 text-amber-700",
   "1.5x":"bg-amber-100 text-amber-700",
   "1x":  "bg-gray-100 text-gray-500",
 };

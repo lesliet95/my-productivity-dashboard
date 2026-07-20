@@ -377,6 +377,82 @@ const DEFAULT_CARDS: CardBenefitData[] = [
       },
     ],
   },
+  {
+    id: "spark-cash-plus",
+    name: "Capital One Spark Cash Plus®",
+    annualFee: 150,
+    tagline: "ANNUAL FEE ANALYSIS — 2026 | EXCLUDES $2,000 SIGN-UP BONUS",
+    accentColor: "amber",
+    benefits: [
+      {
+        id: "cash-back-unlimited",
+        benefit: "2% Unlimited Cash Back",
+        subtitle: "On every purchase — no caps or category restrictions",
+        maxValue: "Soft",
+        organic: { notes: "Automatic on all business spend", value: "Soft" },
+      },
+      {
+        id: "travel-cash-back",
+        benefit: "5% Cash Back — Capital One Business Travel",
+        subtitle: "Hotels, vacation rentals & rental cars booked through the portal",
+        maxValue: "Soft",
+        nonOrganic: { notes: "Book travel through Capital One Business Travel to get the 5% rate", value: "Soft" },
+      },
+      {
+        id: "fee-waiver",
+        benefit: "Annual Fee Refunded at $150K Spend",
+        maxValue: 150,
+        organic: { notes: "Fee is refunded each year the $150,000 spend threshold is hit", value: "TBD", icon: "hourglass" },
+      },
+      {
+        id: "employee-cards",
+        benefit: "Free Employee Cards",
+        subtitle: "Set custom spending limits per employee — all spend earns 2% back",
+        maxValue: "Soft",
+        organic: { notes: "Add employees at no extra cost", value: "Soft" },
+      },
+      {
+        id: "no-foreign-fee",
+        benefit: "No Foreign Transaction Fees",
+        maxValue: "Soft",
+        organic: { notes: "Use internationally with no added fees", value: "Soft" },
+      },
+      {
+        id: "purchase-protection",
+        benefit: "Purchase Protection & Extended Warranty",
+        subtitle: "+1 year on warranties ≤3 years · up to $10,000/item, $50,000/yr",
+        maxValue: "Soft",
+        organic: { notes: "Passive coverage on eligible purchases", value: "Soft" },
+      },
+      {
+        id: "travel-accident",
+        benefit: "Travel Accident Insurance",
+        subtitle: "AD&D coverage on licensed common carriers + 24/7 Travel Assistance Services",
+        maxValue: "Soft",
+        organic: { notes: "Automatic when travel is booked with the card", value: "Soft" },
+      },
+      {
+        id: "pay-over-time",
+        benefit: "Pay-Over-Time Option",
+        subtitle: "Introduced May 2026 — carry a balance up to a set limit",
+        maxValue: "Soft",
+        nonOrganic: { notes: "Optional flexibility if needed — normally paid in full", value: "Soft" },
+      },
+      {
+        id: "expense-mgmt",
+        benefit: "Accounts Payable & Expense Management",
+        subtitle: "Integrated tools within the Capital One Business account",
+        maxValue: "Soft",
+        organic: { notes: "Free tools for tracking and managing business spend", value: "Soft" },
+      },
+      {
+        id: "fraud-protection",
+        benefit: "Fraud Protection & Alerts",
+        maxValue: "Soft",
+        organic: { notes: "Real-time alerts and $0 liability on unauthorized charges", value: "Soft" },
+      },
+    ],
+  },
 ];
 
 export async function getCards(): Promise<CardBenefitData[]> {
