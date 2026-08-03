@@ -1,22 +1,26 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
-import { Check, Trash2, Plus, ListChecks, CalendarDays, ChevronDown, Rows3 } from "lucide-react";
+import { Check, Trash2, Plus, X, ListChecks, CalendarDays, ChevronDown, Rows3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   toggleWeddingTask, addWeddingTask, deleteWeddingTask, updateWeddingTask, updateWeddingTaskFields,
-  addSubtask, toggleSubtask, deleteSubtask, updateSubtask,
+  updateWeddingTaskCustomField, addSubtask, toggleSubtask, deleteSubtask, updateSubtask,
 } from "@/lib/actions/wedding";
+import { addScheduleColumn, removeScheduleColumn } from "@/lib/actions/scheduleColumns";
 import {
   WEDDING_CATEGORIES, WEDDING_CATEGORY_STYLES,
-  type WeddingTask, type WeddingSubtask, type WeddingCategory, type WeddingDayPlan,
+  type WeddingTask, type WeddingSubtask, type WeddingCategory, type WeddingDayPlan, type ScheduleColumn,
 } from "@/lib/types/wedding";
 import DayByDayPlanner from "@/components/DayByDayPlanner";
 
-const WEEK_DAYS: { label: string; sublabel: string; key: "thu" | "fri" | "sat" }[] = [
-  { label: "Thursday", sublabel: "Aug 6",                   key: "thu" },
-  { label: "Friday",   sublabel: "Aug 7",                   key: "fri" },
-  { label: "Saturday", sublabel: "Aug 8 · Wedding Day 💍",  key: "sat" },
+type ScheduleDay = "wed" | "thu" | "fri" | "sat";
+
+const WEEK_DAYS: { label: string; sublabel: string; key: ScheduleDay }[] = [
+  { label: "Wednesday", sublabel: "Aug 5",                   key: "wed" },
+  { label: "Thursday",  sublabel: "Aug 6",                   key: "thu" },
+  { label: "Friday",    sublabel: "Aug 7",                   key: "fri" },
+  { label: "Saturday",  sublabel: "Aug 8 · Wedding Day 💍",  key: "sat" },
 ];
 
 // ── Inline add form ────────────────────────────────────────────────────────────
@@ -24,7 +28,7 @@ function AddTaskRow({
   category, scheduleDay, onAdd,
 }: {
   category: WeddingCategory;
-  scheduleDay?: "thu" | "fri" | "sat";
+  scheduleDay?: ScheduleDay;
   onAdd: (t: WeddingTask) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -311,46 +315,63 @@ function CategoryColumn({
   );
 }
 
-// ── Schedule table (Date / Event / Notes) ────────────────────────────────────────
+// ── Schedule table (Date / Event / Notes / custom columns) ───────────────────────
+function scheduleGridTemplate(columnCount: number) {
+  return `80px repeat(${2 + columnCount}, minmax(0, 1fr))`;
+}
+
 function ScheduleRow({
-  task, onFieldEdit, onDelete,
+  task, columns, onFieldEdit, onCustomFieldEdit, onDelete,
 }: {
   task: WeddingTask;
+  columns: ScheduleColumn[];
   onFieldEdit: (id: string, fields: Partial<Pick<WeddingTask, "date" | "title" | "notes">>) => void;
+  onCustomFieldEdit: (id: string, columnId: string, value: string) => void;
   onDelete: (id: string) => void;
 }) {
   const [date, setDate] = useState(task.date ?? task.time ?? "");
   const [title, setTitle] = useState(task.title);
   const [notes, setNotes] = useState(task.notes ?? "");
+  const [custom, setCustom] = useState(task.customFields ?? {});
 
   return (
-    <div className="grid grid-cols-[80px_1fr_1fr] gap-2 px-3 py-2 group hover:bg-gray-50 border-b border-gray-50 last:border-0">
-      <input
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-        onBlur={() => { if (date !== (task.date ?? task.time ?? "")) onFieldEdit(task.id, { date }); }}
-        placeholder="Date"
-        className="text-xs bg-transparent border-b border-transparent focus:border-rose-300 focus:outline-none min-w-0"
-      />
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        onBlur={() => { if (title !== task.title) onFieldEdit(task.id, { title }); }}
-        placeholder="Event"
-        className="text-xs bg-transparent border-b border-transparent focus:border-rose-300 focus:outline-none min-w-0"
-      />
-      <div className="flex items-center gap-1 min-w-0">
+    <div className="flex items-center gap-2 px-3 py-2 group hover:bg-gray-50 border-b border-gray-50 last:border-0">
+      <div className="grid gap-2 flex-1 min-w-0" style={{ gridTemplateColumns: scheduleGridTemplate(columns.length) }}>
+        <input
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          onBlur={() => { if (date !== (task.date ?? task.time ?? "")) onFieldEdit(task.id, { date }); }}
+          placeholder="Date"
+          className="text-xs bg-transparent border-b border-transparent focus:border-rose-300 focus:outline-none min-w-0"
+        />
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={() => { if (title !== task.title) onFieldEdit(task.id, { title }); }}
+          placeholder="Event"
+          className="text-xs bg-transparent border-b border-transparent focus:border-rose-300 focus:outline-none min-w-0"
+        />
         <input
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           onBlur={() => { if (notes !== (task.notes ?? "")) onFieldEdit(task.id, { notes }); }}
           placeholder="Notes"
-          className="flex-1 text-xs bg-transparent border-b border-transparent focus:border-rose-300 focus:outline-none min-w-0"
+          className="text-xs bg-transparent border-b border-transparent focus:border-rose-300 focus:outline-none min-w-0"
         />
-        <button onClick={() => onDelete(task.id)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all shrink-0">
-          <Trash2 size={11} />
-        </button>
+        {columns.map((col) => (
+          <input
+            key={col.id}
+            value={custom[col.id] ?? ""}
+            onChange={(e) => setCustom((prev) => ({ ...prev, [col.id]: e.target.value }))}
+            onBlur={() => { if ((custom[col.id] ?? "") !== (task.customFields?.[col.id] ?? "")) onCustomFieldEdit(task.id, col.id, custom[col.id] ?? ""); }}
+            placeholder={col.label}
+            className="text-xs bg-transparent border-b border-transparent focus:border-rose-300 focus:outline-none min-w-0"
+          />
+        ))}
       </div>
+      <button onClick={() => onDelete(task.id)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all shrink-0">
+        <Trash2 size={11} />
+      </button>
     </div>
   );
 }
@@ -358,7 +379,7 @@ function ScheduleRow({
 function AddScheduleRow({
   scheduleDay, onAdd,
 }: {
-  scheduleDay: "thu" | "fri" | "sat";
+  scheduleDay: ScheduleDay;
   onAdd: (t: WeddingTask) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -427,16 +448,54 @@ function AddScheduleRow({
   );
 }
 
+function AddColumnControl({ onAdd }: { onAdd: (label: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [label, setLabel] = useState("");
+
+  function commit() {
+    if (label.trim()) onAdd(label.trim());
+    setLabel(""); setOpen(false);
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        title="Add column"
+        className="shrink-0 text-gray-300 hover:text-rose-500 transition-colors"
+      >
+        <Plus size={12} />
+      </button>
+    );
+  }
+
+  return (
+    <input
+      autoFocus
+      value={label}
+      onChange={(e) => setLabel(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setLabel(""); setOpen(false); } }}
+      placeholder="Column name…"
+      className="w-24 text-[10px] uppercase tracking-widest bg-white border border-rose-300 rounded px-1.5 py-0.5 focus:outline-none shrink-0"
+    />
+  );
+}
+
 function ScheduleView({
-  tasks, onFieldEdit, onDelete, onAdd,
+  tasks, columns, onFieldEdit, onCustomFieldEdit, onDelete, onAdd, onAddColumn, onRemoveColumn,
 }: {
   tasks: WeddingTask[];
+  columns: ScheduleColumn[];
   onFieldEdit: (id: string, fields: Partial<Pick<WeddingTask, "date" | "title" | "notes">>) => void;
+  onCustomFieldEdit: (id: string, columnId: string, value: string) => void;
   onDelete: (id: string) => void;
   onAdd: (t: WeddingTask) => void;
+  onAddColumn: (label: string) => void;
+  onRemoveColumn: (id: string) => void;
 }) {
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-4 gap-4">
       {WEEK_DAYS.map(({ label, sublabel, key }) => {
         const isSat = key === "sat";
         const dayTasks = tasks
@@ -462,12 +521,36 @@ function ScheduleView({
               <p className={cn("text-sm font-bold", isSat ? "text-rose-700" : "text-gray-700")}>{label}</p>
               <p className={cn("text-[11px]", isSat ? "text-rose-500" : "text-gray-400")}>{sublabel}</p>
             </div>
-            <div className="grid grid-cols-[80px_1fr_1fr] gap-2 px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-widest border-b border-gray-100 bg-gray-50/60">
-              <span>Date</span><span>Event</span><span>Notes</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 border-b border-gray-100 bg-gray-50/60">
+              <div className="grid gap-2 flex-1 min-w-0" style={{ gridTemplateColumns: scheduleGridTemplate(columns.length) }}>
+                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Date</span>
+                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Event</span>
+                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Notes</span>
+                {columns.map((col) => (
+                  <span key={col.id} className="flex items-center gap-0.5 text-[10px] font-semibold text-gray-400 uppercase tracking-widest group/col min-w-0">
+                    <span className="truncate">{col.label}</span>
+                    <button
+                      onClick={() => onRemoveColumn(col.id)}
+                      title={`Remove ${col.label}`}
+                      className="opacity-0 group-hover/col:opacity-100 text-gray-300 hover:text-red-400 transition-all shrink-0"
+                    >
+                      <X size={9} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <AddColumnControl onAdd={onAddColumn} />
             </div>
             <div className="flex-1 min-h-[120px]">
               {dayTasks.map((task) => (
-                <ScheduleRow key={task.id} task={task} onFieldEdit={onFieldEdit} onDelete={onDelete} />
+                <ScheduleRow
+                  key={task.id}
+                  task={task}
+                  columns={columns}
+                  onFieldEdit={onFieldEdit}
+                  onCustomFieldEdit={onCustomFieldEdit}
+                  onDelete={onDelete}
+                />
               ))}
             </div>
             <AddScheduleRow scheduleDay={key} onAdd={onAdd} />
@@ -480,12 +563,14 @@ function ScheduleView({
 
 // ── Root ───────────────────────────────────────────────────────────────────────
 export default function WeddingPlanner({
-  initialTasks, initialDays,
+  initialTasks, initialDays, initialColumns,
 }: {
   initialTasks: WeddingTask[];
   initialDays: WeddingDayPlan[];
+  initialColumns: ScheduleColumn[];
 }) {
   const [tasks, setTasks] = useState(initialTasks);
+  const [columns, setColumns] = useState(initialColumns);
   const [view, setView] = useState<"checklist" | "schedule" | "days">("checklist");
   const [, startTransition] = useTransition();
 
@@ -515,6 +600,28 @@ export default function WeddingPlanner({
 
   function handleSubtasksUpdate(id: string, subtasks: WeddingSubtask[]) {
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, subtasks } : t));
+  }
+
+  function handleCustomFieldEdit(id: string, columnId: string, value: string) {
+    setTasks((prev) => prev.map((t) => t.id === id
+      ? { ...t, customFields: { ...(t.customFields ?? {}), [columnId]: value } }
+      : t
+    ));
+    startTransition(async () => { await updateWeddingTaskCustomField(id, columnId, value); });
+  }
+
+  function handleAddColumn(label: string) {
+    const optimistic: ScheduleColumn = { id: `tmp-${Date.now()}`, label };
+    setColumns((prev) => [...prev, optimistic]);
+    startTransition(async () => {
+      const created = await addScheduleColumn(label);
+      setColumns((prev) => prev.map((c) => c.id === optimistic.id ? created : c));
+    });
+  }
+
+  function handleRemoveColumn(id: string) {
+    setColumns((prev) => prev.filter((c) => c.id !== id));
+    startTransition(() => removeScheduleColumn(id));
   }
 
   const done = tasks.filter((t) => t.completed).length;
@@ -593,9 +700,13 @@ export default function WeddingPlanner({
       {view === "schedule" && (
         <ScheduleView
           tasks={tasks}
+          columns={columns}
           onFieldEdit={handleScheduleFieldEdit}
+          onCustomFieldEdit={handleCustomFieldEdit}
           onDelete={handleDelete}
           onAdd={handleAdd}
+          onAddColumn={handleAddColumn}
+          onRemoveColumn={handleRemoveColumn}
         />
       )}
       {view === "days" && <DayByDayPlanner initialDays={initialDays} />}

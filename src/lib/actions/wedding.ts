@@ -88,6 +88,14 @@ export async function updateWeddingTaskFields(id: string, fields: Partial<Pick<W
   await save(tasks.map((t) => t.id === id ? { ...t, ...fields } : t));
 }
 
+export async function updateWeddingTaskCustomField(id: string, columnId: string, value: string) {
+  const tasks = await getWeddingTasks();
+  await save(tasks.map((t) => t.id === id
+    ? { ...t, customFields: { ...(t.customFields ?? {}), [columnId]: value } }
+    : t
+  ));
+}
+
 export async function addSubtask(taskId: string, title: string) {
   const tasks = await getWeddingTasks();
   const subtask: WeddingSubtask = { id: `s${Date.now()}`, title, completed: false };

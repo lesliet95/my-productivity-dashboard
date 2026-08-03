@@ -14,8 +14,14 @@ export interface WeddingTask {
   time?: string;
   date?: string;
   notes?: string;
-  scheduleDay?: "thu" | "fri" | "sat";
+  scheduleDay?: "wed" | "thu" | "fri" | "sat";
   subtasks?: WeddingSubtask[];
+  customFields?: Record<string, string>;
+}
+
+export interface ScheduleColumn {
+  id: string;
+  label: string;
 }
 
 export const WEDDING_CATEGORY_STYLES: Record<WeddingCategory, { pill: string; header: string; dot: string; label: string }> = {
