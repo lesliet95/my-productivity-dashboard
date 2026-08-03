@@ -315,9 +315,20 @@ function CategoryColumn({
   );
 }
 
-// ── Schedule table (Date / Event / Notes / custom columns) ───────────────────────
+// ── Schedule table (Time / Event / Notes / custom columns) ───────────────────────
 function scheduleGridTemplate(columnCount: number) {
   return `100px repeat(${2 + columnCount}, minmax(0, 1fr))`;
+}
+
+function parseTimeMinutes(text: string): number | null {
+  const match = text.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+  if (!match) return null;
+  let hour = parseInt(match[1], 10);
+  const minute = parseInt(match[2], 10);
+  const meridiem = match[3]?.toLowerCase();
+  if (meridiem === "pm" && hour !== 12) hour += 12;
+  if (meridiem === "am" && hour === 12) hour = 0;
+  return hour * 60 + minute;
 }
 
 function AutoGrowTextarea({
@@ -372,7 +383,7 @@ function ScheduleRow({
           value={date}
           onChange={setDate}
           onBlur={() => { if (date !== (task.date ?? task.time ?? "")) onFieldEdit(task.id, { date }); }}
-          placeholder="Date"
+          placeholder="Time"
           className="text-xs bg-transparent border-b border-transparent focus:border-rose-300 focus:outline-none min-w-0"
         />
         <AutoGrowTextarea
@@ -454,7 +465,7 @@ function AddScheduleRow({
         value={date}
         onChange={(e) => setDate(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
-        placeholder="Date (e.g. Aug 6, 9:00 AM)"
+        placeholder="Time (e.g. 9:00 AM)"
         className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-rose-300"
       />
       <input
@@ -534,10 +545,12 @@ function ScheduleView({
           .sort((a, b) => {
             const ad = a.date ?? a.time ?? "";
             const bd = b.date ?? b.time ?? "";
-            if (!ad && !bd) return 0;
-            if (!ad) return 1;
-            if (!bd) return -1;
-            return ad.localeCompare(bd);
+            const at = parseTimeMinutes(ad);
+            const bt = parseTimeMinutes(bd);
+            if (at === null && bt === null) return ad.localeCompare(bd);
+            if (at === null) return 1;
+            if (bt === null) return -1;
+            return at - bt;
           });
 
         return (
@@ -554,7 +567,7 @@ function ScheduleView({
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 border-b border-gray-100 bg-gray-50/60">
               <div className="grid gap-2 flex-1 min-w-0" style={{ gridTemplateColumns: scheduleGridTemplate(columns.length) }}>
-                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Date</span>
+                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Time</span>
                 <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Event</span>
                 <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Notes</span>
                 {columns.map((col) => (
