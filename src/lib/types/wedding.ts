@@ -13,6 +13,7 @@ export interface WeddingTask {
   category: WeddingCategory;
   time?: string;
   date?: string;
+  notes?: string;
   scheduleDay?: "thu" | "fri" | "sat";
   subtasks?: WeddingSubtask[];
 }
@@ -28,3 +29,11 @@ export const WEDDING_CATEGORY_STYLES: Record<WeddingCategory, { pill: string; he
 export const WEDDING_CATEGORIES: WeddingCategory[] = [
   "Wedding Checklist", "House Maintenance", "Meals", "Week of", "Day of",
 ];
+
+export interface WeddingDayPlan {
+  id: string;
+  label: string;
+  time: string;
+  tasks: string;
+  notes: string;
+}

@@ -1,11 +1,12 @@
 export const dynamic = "force-dynamic";
 
 import { getWeddingTasks } from "@/lib/actions/wedding";
+import { getWeddingDays } from "@/lib/actions/weddingDays";
 import WeddingPlanner from "@/components/WeddingPlanner";
 import { Heart } from "lucide-react";
 
 export default async function WeddingPage() {
-  const tasks = await getWeddingTasks();
+  const [tasks, days] = await Promise.all([getWeddingTasks(), getWeddingDays()]);
   const done = tasks.filter((t) => t.completed).length;
 
   return (
@@ -19,7 +20,7 @@ export default async function WeddingPage() {
           <p className="text-sm text-gray-500 mt-1">Saturday, August 8, 2026 · {done} of {tasks.length} tasks done</p>
         </div>
       </div>
-      <WeddingPlanner initialTasks={tasks} />
+      <WeddingPlanner initialTasks={tasks} initialDays={days} />
     </div>
   );
 }

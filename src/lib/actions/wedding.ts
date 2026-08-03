@@ -83,7 +83,7 @@ export async function updateWeddingTask(id: string, title: string) {
   await save(tasks.map((t) => t.id === id ? { ...t, title } : t));
 }
 
-export async function updateWeddingTaskFields(id: string, fields: Partial<Pick<WeddingTask, "title" | "time" | "scheduleDay">>) {
+export async function updateWeddingTaskFields(id: string, fields: Partial<Pick<WeddingTask, "title" | "time" | "scheduleDay" | "date" | "notes">>) {
   const tasks = await getWeddingTasks();
   await save(tasks.map((t) => t.id === id ? { ...t, ...fields } : t));
 }

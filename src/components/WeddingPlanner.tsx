@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
-import { Check, Trash2, Plus, ListChecks, CalendarDays, Clock, ChevronDown } from "lucide-react";
+import { Check, Trash2, Plus, ListChecks, CalendarDays, ChevronDown, Rows3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   toggleWeddingTask, addWeddingTask, deleteWeddingTask, updateWeddingTask, updateWeddingTaskFields,
@@ -9,8 +9,9 @@ import {
 } from "@/lib/actions/wedding";
 import {
   WEDDING_CATEGORIES, WEDDING_CATEGORY_STYLES,
-  type WeddingTask, type WeddingSubtask, type WeddingCategory,
+  type WeddingTask, type WeddingSubtask, type WeddingCategory, type WeddingDayPlan,
 } from "@/lib/types/wedding";
+import DayByDayPlanner from "@/components/DayByDayPlanner";
 
 const WEEK_DAYS: { label: string; sublabel: string; key: "thu" | "fri" | "sat" }[] = [
   { label: "Thursday", sublabel: "Aug 6",                   key: "thu" },
@@ -200,21 +201,17 @@ function SubtaskRow({ subtask, onToggle, onDelete, onEdit }: {
 
 // ── Single task row ────────────────────────────────────────────────────────────
 function TaskRow({
-  task, onToggle, onDelete, onEdit, onTimeEdit, onSubtasksUpdate, showTime,
+  task, onToggle, onDelete, onEdit, onSubtasksUpdate,
 }: {
   task: WeddingTask;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (id: string, title: string) => void;
-  onTimeEdit?: (id: string, time: string) => void;
   onSubtasksUpdate: (id: string, subtasks: WeddingSubtask[]) => void;
-  showTime?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(task.title);
-  const [editingTime, setEditingTime] = useState(false);
-  const [timeDraft, setTimeDraft] = useState(task.time ?? "");
   const inputRef = useRef<HTMLInputElement>(null);
   const subtasks = task.subtasks ?? [];
   const doneCount = subtasks.filter((s) => s.completed).length;
@@ -224,11 +221,6 @@ function TaskRow({
     setEditing(false);
     if (draft.trim() && draft.trim() !== task.title) onEdit(task.id, draft.trim());
     else setDraft(task.title);
-  }
-
-  function commitTime() {
-    setEditingTime(false);
-    if (onTimeEdit) onTimeEdit(task.id, timeDraft.trim());
   }
 
   return (
@@ -244,22 +236,6 @@ function TaskRow({
           {task.completed && <Check size={10} strokeWidth={3} />}
         </button>
         <div className="flex-1 min-w-0">
-          {showTime && (
-            editingTime ? (
-              <input autoFocus value={timeDraft} onChange={(e) => setTimeDraft(e.target.value)}
-                onBlur={commitTime}
-                onKeyDown={(e) => { if (e.key === "Enter") commitTime(); if (e.key === "Escape") setEditingTime(false); }}
-                placeholder="e.g. 3:00 PM"
-                className="text-[10px] border border-rose-300 rounded px-1 focus:outline-none bg-white text-rose-500 w-28 mb-0.5" />
-            ) : (
-              <button type="button"
-                className="flex items-center gap-1 text-[10px] text-rose-500 font-semibold mb-0.5 hover:text-rose-700 hover:underline"
-                onClick={(e) => { e.stopPropagation(); setTimeDraft(task.time ?? ""); setEditingTime(true); }}>
-                <Clock size={9} />
-                {task.time ?? <span className="text-gray-300 font-normal">+ add time</span>}
-              </button>
-            )
-          )}
           <div className="flex items-center gap-1.5">
             {editing ? (
               <input ref={inputRef} autoFocus value={draft} onChange={(e) => setDraft(e.target.value)}
@@ -335,17 +311,129 @@ function CategoryColumn({
   );
 }
 
-// ── Schedule view ──────────────────────────────────────────────────────────────
+// ── Schedule table (Date / Event / Notes) ────────────────────────────────────────
+function ScheduleRow({
+  task, onFieldEdit, onDelete,
+}: {
+  task: WeddingTask;
+  onFieldEdit: (id: string, fields: Partial<Pick<WeddingTask, "date" | "title" | "notes">>) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [date, setDate] = useState(task.date ?? task.time ?? "");
+  const [title, setTitle] = useState(task.title);
+  const [notes, setNotes] = useState(task.notes ?? "");
+
+  return (
+    <div className="grid grid-cols-[80px_1fr_1fr] gap-2 px-3 py-2 group hover:bg-gray-50 border-b border-gray-50 last:border-0">
+      <input
+        value={date}
+        onChange={(e) => setDate(e.target.value)}
+        onBlur={() => { if (date !== (task.date ?? task.time ?? "")) onFieldEdit(task.id, { date }); }}
+        placeholder="Date"
+        className="text-xs bg-transparent border-b border-transparent focus:border-rose-300 focus:outline-none min-w-0"
+      />
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onBlur={() => { if (title !== task.title) onFieldEdit(task.id, { title }); }}
+        placeholder="Event"
+        className="text-xs bg-transparent border-b border-transparent focus:border-rose-300 focus:outline-none min-w-0"
+      />
+      <div className="flex items-center gap-1 min-w-0">
+        <input
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          onBlur={() => { if (notes !== (task.notes ?? "")) onFieldEdit(task.id, { notes }); }}
+          placeholder="Notes"
+          className="flex-1 text-xs bg-transparent border-b border-transparent focus:border-rose-300 focus:outline-none min-w-0"
+        />
+        <button onClick={() => onDelete(task.id)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all shrink-0">
+          <Trash2 size={11} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AddScheduleRow({
+  scheduleDay, onAdd,
+}: {
+  scheduleDay: "thu" | "fri" | "sat";
+  onAdd: (t: WeddingTask) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [date, setDate] = useState("");
+  const [title, setTitle] = useState("");
+  const [notes, setNotes] = useState("");
+  const [, startTransition] = useTransition();
+
+  function handleAdd() {
+    if (!title.trim()) return;
+    const category: WeddingCategory = scheduleDay === "sat" ? "Day of" : "Week of";
+    const optimistic: WeddingTask = {
+      id: `tmp-${Date.now()}`, title: title.trim(), completed: false, category,
+      scheduleDay, date: date.trim() || undefined, notes: notes.trim() || undefined,
+    };
+    onAdd(optimistic);
+    setDate(""); setTitle(""); setNotes(""); setOpen(false);
+    startTransition(async () => {
+      await addWeddingTask({
+        title: optimistic.title, completed: false, category, scheduleDay,
+        date: optimistic.date, notes: optimistic.notes,
+      });
+    });
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-1 w-full px-3 py-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+      >
+        <Plus size={11} /> New event
+      </button>
+    );
+  }
+
+  return (
+    <div className="px-3 py-2 border-t border-gray-100 space-y-1.5">
+      <input
+        autoFocus
+        value={date}
+        onChange={(e) => setDate(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
+        placeholder="Date (e.g. Aug 6, 9:00 AM)"
+        className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-rose-300"
+      />
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); if (e.key === "Escape") setOpen(false); }}
+        placeholder="Event…"
+        className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-rose-300"
+      />
+      <input
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); if (e.key === "Escape") setOpen(false); }}
+        placeholder="Notes"
+        className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-rose-300"
+      />
+      <div className="flex gap-1.5">
+        <button onClick={handleAdd} className="text-xs bg-rose-500 text-white px-2 py-1 rounded-lg hover:bg-rose-600">Add</button>
+        <button onClick={() => setOpen(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 function ScheduleView({
-  tasks, onToggle, onDelete, onEdit, onTimeEdit, onAdd, onSubtasksUpdate,
+  tasks, onFieldEdit, onDelete, onAdd,
 }: {
   tasks: WeddingTask[];
-  onToggle: (id: string) => void;
+  onFieldEdit: (id: string, fields: Partial<Pick<WeddingTask, "date" | "title" | "notes">>) => void;
   onDelete: (id: string) => void;
-  onEdit: (id: string, title: string) => void;
-  onTimeEdit: (id: string, time: string) => void;
   onAdd: (t: WeddingTask) => void;
-  onSubtasksUpdate: (id: string, subtasks: WeddingSubtask[]) => void;
 }) {
   return (
     <div className="grid grid-cols-3 gap-4">
@@ -354,10 +442,12 @@ function ScheduleView({
         const dayTasks = tasks
           .filter((t) => t.scheduleDay === key)
           .sort((a, b) => {
-            if (!a.time && !b.time) return 0;
-            if (!a.time) return 1;
-            if (!b.time) return -1;
-            return a.time.localeCompare(b.time);
+            const ad = a.date ?? a.time ?? "";
+            const bd = b.date ?? b.time ?? "";
+            if (!ad && !bd) return 0;
+            if (!ad) return 1;
+            if (!bd) return -1;
+            return ad.localeCompare(bd);
           });
 
         return (
@@ -372,25 +462,15 @@ function ScheduleView({
               <p className={cn("text-sm font-bold", isSat ? "text-rose-700" : "text-gray-700")}>{label}</p>
               <p className={cn("text-[11px]", isSat ? "text-rose-500" : "text-gray-400")}>{sublabel}</p>
             </div>
-            <div className="flex-1 p-2 space-y-0.5 min-h-[120px]">
+            <div className="grid grid-cols-[80px_1fr_1fr] gap-2 px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-widest border-b border-gray-100 bg-gray-50/60">
+              <span>Date</span><span>Event</span><span>Notes</span>
+            </div>
+            <div className="flex-1 min-h-[120px]">
               {dayTasks.map((task) => (
-                <TaskRow
-                  key={task.id}
-                  task={task}
-                  onToggle={onToggle}
-                  onDelete={onDelete}
-                  onEdit={onEdit}
-                  onTimeEdit={onTimeEdit}
-                  onSubtasksUpdate={onSubtasksUpdate}
-                  showTime
-                />
+                <ScheduleRow key={task.id} task={task} onFieldEdit={onFieldEdit} onDelete={onDelete} />
               ))}
             </div>
-            <AddTaskRow
-              category={isSat ? "Day of" : "Week of"}
-              scheduleDay={key}
-              onAdd={onAdd}
-            />
+            <AddScheduleRow scheduleDay={key} onAdd={onAdd} />
           </div>
         );
       })}
@@ -399,9 +479,14 @@ function ScheduleView({
 }
 
 // ── Root ───────────────────────────────────────────────────────────────────────
-export default function WeddingPlanner({ initialTasks }: { initialTasks: WeddingTask[] }) {
+export default function WeddingPlanner({
+  initialTasks, initialDays,
+}: {
+  initialTasks: WeddingTask[];
+  initialDays: WeddingDayPlan[];
+}) {
   const [tasks, setTasks] = useState(initialTasks);
-  const [view, setView] = useState<"checklist" | "schedule">("checklist");
+  const [view, setView] = useState<"checklist" | "schedule" | "days">("checklist");
   const [, startTransition] = useTransition();
 
   function handleToggle(id: string) {
@@ -423,9 +508,9 @@ export default function WeddingPlanner({ initialTasks }: { initialTasks: Wedding
     startTransition(async () => { await updateWeddingTask(id, title); });
   }
 
-  function handleTimeEdit(id: string, time: string) {
-    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, time: time || undefined } : t));
-    startTransition(async () => { await updateWeddingTaskFields(id, { time: time || undefined }); });
+  function handleScheduleFieldEdit(id: string, fields: Partial<Pick<WeddingTask, "date" | "title" | "notes">>) {
+    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, ...fields } : t));
+    startTransition(async () => { await updateWeddingTaskFields(id, fields); });
   }
 
   function handleSubtasksUpdate(id: string, subtasks: WeddingSubtask[]) {
@@ -456,7 +541,7 @@ export default function WeddingPlanner({ initialTasks }: { initialTasks: Wedding
       {/* View toggle */}
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-          {view === "checklist" ? "By Category" : "Week Schedule"}
+          {view === "checklist" ? "By Category" : view === "schedule" ? "Week Schedule" : "Day by Day"}
         </h2>
         <div className="flex gap-0.5 bg-gray-100 p-0.5 rounded-lg">
           <button
@@ -477,11 +562,20 @@ export default function WeddingPlanner({ initialTasks }: { initialTasks: Wedding
           >
             <CalendarDays size={12} /> Schedule
           </button>
+          <button
+            onClick={() => setView("days")}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors",
+              view === "days" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700",
+            )}
+          >
+            <Rows3 size={12} /> Day by Day
+          </button>
         </div>
       </div>
 
-      {view === "checklist" ? (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+      {view === "checklist" && (
+        <div className="grid grid-cols-3 gap-4">
           {WEDDING_CATEGORIES.map((cat) => (
             <CategoryColumn
               key={cat}
@@ -495,17 +589,16 @@ export default function WeddingPlanner({ initialTasks }: { initialTasks: Wedding
             />
           ))}
         </div>
-      ) : (
+      )}
+      {view === "schedule" && (
         <ScheduleView
           tasks={tasks}
-          onToggle={handleToggle}
+          onFieldEdit={handleScheduleFieldEdit}
           onDelete={handleDelete}
-          onEdit={handleEdit}
-          onTimeEdit={handleTimeEdit}
           onAdd={handleAdd}
-          onSubtasksUpdate={handleSubtasksUpdate}
         />
       )}
+      {view === "days" && <DayByDayPlanner initialDays={initialDays} />}
     </div>
   );
 }
