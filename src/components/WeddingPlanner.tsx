@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { Check, Trash2, Plus, X, ListChecks, CalendarDays, ChevronDown, Rows3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -317,7 +317,38 @@ function CategoryColumn({
 
 // ── Schedule table (Date / Event / Notes / custom columns) ───────────────────────
 function scheduleGridTemplate(columnCount: number) {
-  return `80px repeat(${2 + columnCount}, minmax(0, 1fr))`;
+  return `100px repeat(${2 + columnCount}, minmax(0, 1fr))`;
+}
+
+function AutoGrowTextarea({
+  value, onChange, onBlur, placeholder, className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onBlur: () => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onBlur={onBlur}
+      placeholder={placeholder}
+      className={cn("resize-none overflow-hidden leading-snug", className)}
+    />
+  );
 }
 
 function ScheduleRow({
@@ -335,41 +366,41 @@ function ScheduleRow({
   const [custom, setCustom] = useState(task.customFields ?? {});
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 group hover:bg-gray-50 border-b border-gray-50 last:border-0">
+    <div className="flex items-start gap-2 px-3 py-2 group hover:bg-gray-50 border-b border-gray-50 last:border-0">
       <div className="grid gap-2 flex-1 min-w-0" style={{ gridTemplateColumns: scheduleGridTemplate(columns.length) }}>
-        <input
+        <AutoGrowTextarea
           value={date}
-          onChange={(e) => setDate(e.target.value)}
+          onChange={setDate}
           onBlur={() => { if (date !== (task.date ?? task.time ?? "")) onFieldEdit(task.id, { date }); }}
           placeholder="Date"
           className="text-xs bg-transparent border-b border-transparent focus:border-rose-300 focus:outline-none min-w-0"
         />
-        <input
+        <AutoGrowTextarea
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={setTitle}
           onBlur={() => { if (title !== task.title) onFieldEdit(task.id, { title }); }}
           placeholder="Event"
           className="text-xs bg-transparent border-b border-transparent focus:border-rose-300 focus:outline-none min-w-0"
         />
-        <input
+        <AutoGrowTextarea
           value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          onChange={setNotes}
           onBlur={() => { if (notes !== (task.notes ?? "")) onFieldEdit(task.id, { notes }); }}
           placeholder="Notes"
           className="text-xs bg-transparent border-b border-transparent focus:border-rose-300 focus:outline-none min-w-0"
         />
         {columns.map((col) => (
-          <input
+          <AutoGrowTextarea
             key={col.id}
             value={custom[col.id] ?? ""}
-            onChange={(e) => setCustom((prev) => ({ ...prev, [col.id]: e.target.value }))}
+            onChange={(v) => setCustom((prev) => ({ ...prev, [col.id]: v }))}
             onBlur={() => { if ((custom[col.id] ?? "") !== (task.customFields?.[col.id] ?? "")) onCustomFieldEdit(task.id, col.id, custom[col.id] ?? ""); }}
             placeholder={col.label}
             className="text-xs bg-transparent border-b border-transparent focus:border-rose-300 focus:outline-none min-w-0"
           />
         ))}
       </div>
-      <button onClick={() => onDelete(task.id)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all shrink-0">
+      <button onClick={() => onDelete(task.id)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all shrink-0 mt-0.5">
         <Trash2 size={11} />
       </button>
     </div>
@@ -495,7 +526,7 @@ function ScheduleView({
   onRemoveColumn: (id: string) => void;
 }) {
   return (
-    <div className="grid grid-cols-4 gap-4">
+    <div className="flex flex-col gap-4">
       {WEEK_DAYS.map(({ label, sublabel, key }) => {
         const isSat = key === "sat";
         const dayTasks = tasks
@@ -527,8 +558,8 @@ function ScheduleView({
                 <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Event</span>
                 <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Notes</span>
                 {columns.map((col) => (
-                  <span key={col.id} className="flex items-center gap-0.5 text-[10px] font-semibold text-gray-400 uppercase tracking-widest group/col min-w-0">
-                    <span className="truncate">{col.label}</span>
+                  <span key={col.id} className="flex items-start gap-0.5 text-[10px] font-semibold text-gray-400 uppercase tracking-widest group/col min-w-0">
+                    <span className="break-words">{col.label}</span>
                     <button
                       onClick={() => onRemoveColumn(col.id)}
                       title={`Remove ${col.label}`}
