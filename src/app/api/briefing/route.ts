@@ -1,8 +1,13 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { currentQuarter } from "@/lib/quarters";
+import { ensureGoalsSchema } from "@/lib/actions/goals";
 
 export async function GET() {
   const sql = getDb();
+  await ensureGoalsSchema();
 
   const [tasks, habits, goals] = await Promise.all([
     sql`
@@ -31,7 +36,7 @@ export async function GET() {
     sql`
       SELECT title, progress, TO_CHAR(target_date, 'YYYY-MM-DD') AS target_date
       FROM goals
-      WHERE status = 'active'
+      WHERE status = 'active' AND quarter = ${currentQuarter()}
       ORDER BY target_date ASC NULLS LAST
       LIMIT 5
     `,

@@ -4,16 +4,19 @@ import { getTasks } from "@/lib/actions/tasks";
 import { getHabits } from "@/lib/actions/habits";
 import { getGoals } from "@/lib/actions/goals";
 import { getNotes } from "@/lib/actions/notes";
+import { currentQuarter } from "@/lib/quarters";
 import { CheckSquare, Zap, Target, FileText, TrendingUp } from "lucide-react";
 import Link from "next/link";
 
 export default async function DashboardPage() {
-  const [tasks, habits, goals, notes] = await Promise.all([
+  const [tasks, habits, allGoals, notes] = await Promise.all([
     getTasks(),
     getHabits(),
     getGoals(),
     getNotes(),
   ]);
+  const quarter = currentQuarter();
+  const goals = allGoals.filter((g) => g.quarter === quarter);
 
   const pendingTasks = tasks.filter((t) => !t.completed).length;
   const completedTasks = tasks.filter((t) => t.completed).length;
