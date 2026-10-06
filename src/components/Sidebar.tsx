@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   CheckSquare, FileText, Target, LayoutDashboard, Share2, LayoutGrid,
-  TrendingUp, ListChecks, CalendarDays, CalendarPlus, CreditCard, Heart, Sparkles,
+  ListChecks, CalendarDays, CalendarPlus, CreditCard, Heart, Sparkles,
   Music, MoreHorizontal, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,6 @@ const ownerLinks = [
   { href: "/habits/tracker", label: "Habits",          icon: LayoutGrid },
   { href: "/notes",       label: "Notes",              icon: FileText },
   { href: "/goals",       label: "Goals",              icon: Target },
-  { href: "/trading",     label: "Trading Journal",    icon: TrendingUp },
   { href: "/bucket-list", label: "Bucket List",        icon: ListChecks },
   { href: "/social",      label: "Social Media",       icon: Share2 },
   { href: "/cards",       label: "Card Benefits",      icon: CreditCard },
