@@ -15,6 +15,18 @@ function fmtValue(v: BenefitValue): string {
   return v;
 }
 
+// Turn typed text into a stored value: "" → null, "300" or "$1,200" → number, else keep the text ("~$400", "TBD", "Soft")
+function parseInput(v: string): BenefitValue {
+  const t = v.trim();
+  if (!t) return null;
+  const n = t.replace(/[$,\s]/g, "");
+  return /^\d+(\.\d+)?$/.test(n) ? parseFloat(n) : t;
+}
+
+function hasContent(e: { notes: string; value: BenefitValue }): boolean {
+  return e.notes.trim() !== "" || (e.value !== null && e.value !== undefined && String(e.value).trim() !== "");
+}
+
 function fmtMath(n: number, prefix = "+"): string {
   return `${n >= 0 ? prefix : "-"}$${Math.abs(n).toLocaleString()}`;
 }
@@ -293,15 +305,15 @@ export default function CardBenefits({ cards: initial }: { cards: CardBenefitDat
     const row = card.benefits.find((r) => r.id === rowId);
     const current = row?.organic ?? { notes: "", value: null };
     const merged = { ...current, ...patch };
-    // Remove the entry entirely if notes are cleared
-    updateRow(rowId, { organic: merged.notes.trim() ? merged : undefined });
+    // Remove the entry only when both notes and value are cleared
+    updateRow(rowId, { organic: hasContent(merged) ? merged : undefined });
   }
 
   function updateNonOrganic(rowId: string, patch: Partial<NonNullable<BenefitRow["nonOrganic"]>>) {
     const row = card.benefits.find((r) => r.id === rowId);
     const current = row?.nonOrganic ?? { notes: "", value: null };
     const merged = { ...current, ...patch };
-    updateRow(rowId, { nonOrganic: merged.notes.trim() ? merged : undefined });
+    updateRow(rowId, { nonOrganic: hasContent(merged) ? merged : undefined });
   }
 
   const usedCount = card.benefits.filter((r) => r.used).length;
@@ -462,7 +474,7 @@ export default function CardBenefits({ cards: initial }: { cards: CardBenefitDat
                 )}>
                   <EditableCell
                     value={String(row.organic?.value ?? "")}
-                    onChange={(v) => updateOrganic(row.id, { notes: row.organic?.notes ?? "", value: v })}
+                    onChange={(v) => updateOrganic(row.id, { value: parseInput(v) })}
                     className={cn("text-sm", row.organic?.notes ? accent.orgValueText : "text-gray-600")}
                     placeholder="$0"
                   />
@@ -491,7 +503,7 @@ export default function CardBenefits({ cards: initial }: { cards: CardBenefitDat
                 )}>
                   <EditableCell
                     value={String(row.nonOrganic?.value ?? "")}
-                    onChange={(v) => updateNonOrganic(row.id, { notes: row.nonOrganic?.notes ?? "", value: v })}
+                    onChange={(v) => updateNonOrganic(row.id, { value: parseInput(v) })}
                     className={cn("text-sm", row.nonOrganic?.notes ? accent.nonOrgValueText : "text-gray-600")}
                     placeholder="$0"
                   />
