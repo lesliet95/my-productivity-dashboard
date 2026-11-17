@@ -157,7 +157,7 @@ function EditableCell({
       onClick={() => { setDraft(value); setEditing(true); }}
       className={cn("group/edit cursor-pointer flex items-start gap-1 min-h-[1.25rem]", className)}
     >
-      <span className={value ? "" : "text-gray-300 italic"}>{value || placeholder}</span>
+      <span className={value ? "" : "text-gray-600 italic"}>{value || placeholder}</span>
       <Pencil size={10} className="opacity-0 group-hover/edit:opacity-40 shrink-0 mt-0.5 text-gray-500 transition-opacity" />
     </span>
   );
@@ -221,21 +221,21 @@ const MULTIPLIER_COLOR: Record<string, string> = {
   "3x":  "bg-indigo-100 text-indigo-700",
   "2%":  "bg-amber-100 text-amber-700",
   "1.5x":"bg-amber-100 text-amber-700",
-  "1x":  "bg-gray-100 text-gray-500",
+  "1x":  "bg-gray-100 text-gray-600",
 };
 
 function PointsView({ cardId }: { cardId: string }) {
   const rates = POINTS_RATES[cardId] ?? [];
-  if (!rates.length) return <p className="text-gray-400 text-sm py-8 text-center">No points data for this card yet.</p>;
+  if (!rates.length) return <p className="text-gray-700 text-sm py-8 text-center">No points data for this card yet.</p>;
 
   return (
     <div className="rounded-xl border border-gray-200 overflow-hidden">
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-gray-50 border-b border-gray-200">
-            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/3">Category</th>
-            <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Points</th>
-            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Notes</th>
+            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider w-1/3">Category</th>
+            <th className="text-center px-5 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider w-24">Points</th>
+            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">Notes</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
@@ -247,7 +247,7 @@ function PointsView({ cardId }: { cardId: string }) {
                   {r.multiplier}
                 </span>
               </td>
-              <td className="px-5 py-3.5 text-gray-500 text-xs">{r.note ?? "—"}</td>
+              <td className="px-5 py-3.5 text-gray-700 text-xs">{r.note ?? "—"}</td>
             </tr>
           ))}
         </tbody>
@@ -266,7 +266,7 @@ export default function CardBenefits({ cards: initial }: { cards: CardBenefitDat
   const [, startTransition] = useTransition();
 
   const card = cards.find((c) => c.id === activeId) ?? cards[0];
-  if (!card) return <p className="text-gray-400 text-center py-16">No cards configured yet.</p>;
+  if (!card) return <p className="text-gray-700 text-center py-16">No cards configured yet.</p>;
 
   const accent = getAccent(card.accentColor);
   const math = calcCardMath(card);
@@ -333,7 +333,7 @@ export default function CardBenefits({ cards: initial }: { cards: CardBenefitDat
           onClick={() => setActiveTab("benefits")}
           className={cn(
             "flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
-            activeTab === "benefits" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"
+            activeTab === "benefits" ? "bg-white shadow-sm text-gray-900" : "text-gray-700 hover:text-gray-900"
           )}
         >
           <CreditCard size={13} /> Benefits
@@ -342,7 +342,7 @@ export default function CardBenefits({ cards: initial }: { cards: CardBenefitDat
           onClick={() => setActiveTab("points")}
           className={cn(
             "flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
-            activeTab === "points" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"
+            activeTab === "points" ? "bg-white shadow-sm text-gray-900" : "text-gray-700 hover:text-gray-900"
           )}
         >
           <Zap size={13} /> Points
@@ -428,14 +428,14 @@ export default function CardBenefits({ cards: initial }: { cards: CardBenefitDat
 
                 {/* Benefit name */}
                 <div className="px-4 py-3 bg-white">
-                  <span className={cn("font-semibold text-gray-900", row.used && "line-through text-gray-400")}>
+                  <span className={cn("font-semibold text-gray-900", row.used && "line-through text-gray-600")}>
                     {row.benefit}
                   </span>
-                  {row.subtitle && <div className="text-xs text-gray-400 mt-0.5">{row.subtitle}</div>}
+                  {row.subtitle && <div className="text-xs text-gray-700 mt-0.5">{row.subtitle}</div>}
                 </div>
 
                 {/* Max value */}
-                <div className="px-3 py-3 bg-gray-50 text-gray-500 text-xs font-medium flex items-center">
+                <div className="px-3 py-3 bg-gray-50 text-gray-700 text-xs font-medium flex items-center">
                   {fmtValue(row.maxValue)}
                 </div>
 
@@ -463,7 +463,7 @@ export default function CardBenefits({ cards: initial }: { cards: CardBenefitDat
                   <EditableCell
                     value={String(row.organic?.value ?? "")}
                     onChange={(v) => updateOrganic(row.id, { notes: row.organic?.notes ?? "", value: v })}
-                    className={cn("text-sm", row.organic?.notes ? accent.orgValueText : "text-gray-300")}
+                    className={cn("text-sm", row.organic?.notes ? accent.orgValueText : "text-gray-600")}
                     placeholder="$0"
                   />
                 </div>
@@ -492,7 +492,7 @@ export default function CardBenefits({ cards: initial }: { cards: CardBenefitDat
                   <EditableCell
                     value={String(row.nonOrganic?.value ?? "")}
                     onChange={(v) => updateNonOrganic(row.id, { notes: row.nonOrganic?.notes ?? "", value: v })}
-                    className={cn("text-sm", row.nonOrganic?.notes ? accent.nonOrgValueText : "text-gray-300")}
+                    className={cn("text-sm", row.nonOrganic?.notes ? accent.nonOrgValueText : "text-gray-600")}
                     placeholder="$0"
                   />
                 </div>
