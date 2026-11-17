@@ -4,6 +4,12 @@ import { revalidatePath } from "next/cache";
 import { getData, setData } from "@/lib/actions/userData";
 import type { CardBenefitData } from "@/lib/types/cards";
 
+// Exact monthly DoorDash promos, per Chase's benefit terms (checked Nov 2026)
+const DOORDASH_SUBTITLE: Record<string, string> = {
+  "chase-sapphire-reserve": "$15 off 1 order + two $10 off non-restaurant orders every month · free DashPass",
+  "chase-sapphire-reserve-business": "$5 off 1 restaurant order + two $10 off non-restaurant orders every month · free DashPass",
+};
+
 const DEFAULT_CARDS: CardBenefitData[] = [
   {
     id: "chase-sapphire-reserve",
@@ -59,6 +65,7 @@ const DEFAULT_CARDS: CardBenefitData[] = [
       {
         id: "doordash",
         benefit: "DoorDash / DashPass Credits",
+        subtitle: DOORDASH_SUBTITLE["chase-sapphire-reserve"],
         maxValue: 420,
         nonOrganic: { notes: "Occasional non-restaurant promo use", value: "~$60", icon: "hourglass" },
       },
@@ -516,7 +523,7 @@ const DEFAULT_CARDS: CardBenefitData[] = [
       {
         id: "doordash",
         benefit: "DoorDash / DashPass Credits",
-        subtitle: "12 months DashPass + up to $25/mo in promos",
+        subtitle: DOORDASH_SUBTITLE["chase-sapphire-reserve-business"],
         maxValue: 420,
         nonOrganic: { notes: "$120 DashPass value + $300 in monthly promos", value: "TBD", icon: "hourglass" },
       },
@@ -637,7 +644,17 @@ export async function getCards(): Promise<CardBenefitData[]> {
       }),
     };
   });
-  return migrated;
+  return migrated.map(withDoorDashSubtitle);
+}
+
+// Keep the DoorDash benefit description in sync with DOORDASH_SUBTITLE for stored cards
+function withDoorDashSubtitle(card: CardBenefitData): CardBenefitData {
+  const subtitle = DOORDASH_SUBTITLE[card.id];
+  if (!subtitle) return card;
+  return {
+    ...card,
+    benefits: card.benefits.map((row) => (row.id === "doordash" ? { ...row, subtitle } : row)),
+  };
 }
 
 export async function saveCards(cards: CardBenefitData[]): Promise<void> {
