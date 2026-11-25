@@ -195,13 +195,9 @@ const POINTS_RATES: Record<string, PointsCategory[]> = {
     { category: "U.S. Gas Stations",   multiplier: "3x", note: "Up to $6,000/yr, then 1%" },
     { category: "Everything else",     multiplier: "1x" },
   ],
-  "amex-business-platinum": [
-    { category: "Flights (Amex Travel)",            multiplier: "5x",  note: "Prepaid flights booked through AmexTravel.com" },
-    { category: "Hotels (Amex Travel)",             multiplier: "5x",  note: "Prepaid hotels & short-term rentals via AmexTravel.com" },
-    { category: "Large Purchases ($5K+)",           multiplier: "2x",  note: "U.S. purchases of $5,000+ (up to $2M/yr)" },
-    { category: "Construction & Hardware",          multiplier: "2x",  note: "U.S. construction material merchants" },
-    { category: "Electronics/Software/Cloud",       multiplier: "2x",  note: "U.S. electronic goods retailers & software/cloud providers" },
-    { category: "Shipping",                         multiplier: "2x",  note: "U.S. shipping providers" },
+  "amex-platinum": [
+    { category: "Flights",                          multiplier: "5x",  note: "Booked directly with airlines or via AmexTravel.com (up to $500K/yr)" },
+    { category: "Hotels (Amex Travel)",             multiplier: "5x",  note: "Prepaid hotels booked through AmexTravel.com" },
     { category: "Everything else",                  multiplier: "1x" },
   ],
   "chase-ink-business": [

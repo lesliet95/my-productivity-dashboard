@@ -103,8 +103,8 @@ const DEFAULT_CARDS: CardBenefitData[] = [
     ],
   },
   {
-    id: "amex-business-platinum",
-    name: "Amex Business Platinum Card®",
+    id: "amex-platinum",
+    name: "The Platinum Card® from American Express",
     annualFee: 895,
     tagline: "ANNUAL FEE ANALYSIS — 2026",
     accentColor: "amber",
@@ -114,33 +114,47 @@ const DEFAULT_CARDS: CardBenefitData[] = [
         benefit: "$600 Hotel Credit",
         subtitle: "$300 Jan–Jun · $300 Jul–Dec",
         maxValue: 600,
-        organic: { notes: "Fine Hotels + Resorts (no min stay) or The Hotel Collection (2-night min) via Amex Travel", value: "TBD", icon: "hourglass" },
+        organic: { notes: "Prepaid Fine Hotels + Resorts or The Hotel Collection (2-night min) via Amex Travel", value: "TBD", icon: "hourglass" },
       },
       {
-        id: "chatgpt",
-        benefit: "$300 ChatGPT Business Credit",
+        id: "resy",
+        benefit: "$400 Resy Dining Credit",
+        subtitle: "$100 quarterly",
+        maxValue: 400,
+        organic: { notes: "Eligible U.S. Resy restaurants — enroll to activate", value: "TBD", icon: "hourglass" },
+      },
+      {
+        id: "digital-entertainment",
+        benefit: "$300 Digital Entertainment Credit",
+        subtitle: "$25/mo",
         maxValue: 300,
-        organic: { notes: "Statement credit toward ChatGPT Business subscription", value: "TBD", icon: "hourglass" },
+        organic: { notes: "Disney+, Hulu, ESPN+, Peacock, Paramount+, YouTube Premium/TV, NYT, WSJ — enroll to activate", value: "TBD", icon: "hourglass" },
       },
       {
-        id: "indeed",
-        benefit: "$360 Indeed Credit",
-        subtitle: "$90 quarterly",
-        maxValue: 360,
-        organic: { notes: "Quarterly credit on Indeed hiring spend", value: "TBD", icon: "hourglass" },
+        id: "lululemon",
+        benefit: "$300 lululemon Credit",
+        subtitle: "$75 quarterly",
+        maxValue: 300,
+        organic: { notes: "U.S. lululemon stores and lululemon.com — enroll to activate", value: "TBD", icon: "hourglass" },
       },
       {
-        id: "dell-credits",
-        benefit: "$1,150 Dell Credits",
-        subtitle: "$150 upfront + $1,000 after $5K spend",
-        maxValue: 1150,
-        organic: { notes: "$150 on any Dell purchase + $1,000 after spending $5,000 at Dell", value: "TBD", icon: "hourglass" },
+        id: "equinox",
+        benefit: "$300 Equinox Credit",
+        maxValue: 300,
+        nonOrganic: { notes: "Equinox club memberships or Equinox+ app", value: "TBD", icon: "hourglass" },
       },
       {
-        id: "adobe",
-        benefit: "$250 Adobe Credit",
-        maxValue: 250,
-        organic: { notes: "Already using Adobe CC — offsets existing subscription", value: 250 },
+        id: "uber-cash",
+        benefit: "$200 Uber Cash",
+        subtitle: "$15/mo + $20 bonus in December",
+        maxValue: 200,
+        organic: { notes: "U.S. Uber rides or Uber Eats — add card to Uber account", value: "TBD", icon: "hourglass" },
+      },
+      {
+        id: "uber-one",
+        benefit: "$120 Uber One Credit",
+        maxValue: 120,
+        nonOrganic: { notes: "Covers an auto-renewing Uber One membership", value: "TBD", icon: "hourglass" },
       },
       {
         id: "airline-fee",
@@ -149,10 +163,10 @@ const DEFAULT_CARDS: CardBenefitData[] = [
         organic: { notes: "Select one airline — incidental fees (bags, seat upgrades, lounge day passes)", value: "TBD", icon: "hourglass" },
       },
       {
-        id: "hilton-credit",
-        benefit: "$200 Hilton Property Credit",
+        id: "oura",
+        benefit: "$200 Oura Ring Credit",
         maxValue: 200,
-        organic: { notes: "Hilton for Business members — eligible purchases at Hilton properties", value: "TBD", icon: "hourglass" },
+        nonOrganic: { notes: "Oura Ring hardware purchase at ouraring.com", value: "TBD", icon: "hourglass" },
       },
       {
         id: "clear",
@@ -161,11 +175,18 @@ const DEFAULT_CARDS: CardBenefitData[] = [
         organic: { notes: "CLEAR already used at airports regularly", value: 209 },
       },
       {
-        id: "wireless",
-        benefit: "$120 Wireless Phone Credit",
-        subtitle: "$10/mo",
-        maxValue: 120,
-        organic: { notes: "Statement credit on U.S. wireless phone service purchases", value: "TBD", icon: "hourglass" },
+        id: "walmart-plus",
+        benefit: "$155 Walmart+ Credit",
+        subtitle: "$12.95/mo + tax",
+        maxValue: 155,
+        nonOrganic: { notes: "Covers a monthly Walmart+ membership (includes Paramount+ or Peacock)", value: "TBD", icon: "hourglass" },
+      },
+      {
+        id: "saks",
+        benefit: "$100 Saks Credit",
+        subtitle: "$50 Jan–Jun · $50 Jul–Dec",
+        maxValue: 100,
+        nonOrganic: { notes: "Saks Fifth Avenue stores or saks.com — enroll to activate", value: "TBD", icon: "hourglass" },
       },
       {
         id: "global-entry",
@@ -184,7 +205,7 @@ const DEFAULT_CARDS: CardBenefitData[] = [
         id: "delta-skyclub",
         benefit: "10 Delta Sky Club Visits/yr",
         maxValue: "Soft",
-        nonOrganic: { notes: "Unlimited visits after $75K annual spend; ~$50/visit value", value: "Soft", icon: "hourglass" },
+        nonOrganic: { notes: "When flying Delta; unlimited visits after $75K annual spend", value: "Soft", icon: "hourglass" },
       },
       {
         id: "priority-pass",
@@ -195,23 +216,23 @@ const DEFAULT_CARDS: CardBenefitData[] = [
       {
         id: "hotel-status",
         benefit: "Hotel & Rental Status",
-        subtitle: "Marriott Gold · Hilton Gold · Avis+ · Hertz President's Circle · National Executive",
+        subtitle: "Marriott Gold · Hilton Gold · Leaders Club Sterling · Avis+ · Hertz President's Circle · National Executive",
         maxValue: "Soft",
-        nonOrganic: { notes: "Automatic mid-tier hotel status + top-tier car rental status", value: "Soft" },
+        nonOrganic: { notes: "Automatic mid-tier hotel status + top-tier car rental status — enroll to activate", value: "Soft" },
       },
       {
         id: "cell-insurance",
-        benefit: "Cell Phone Insurance",
+        benefit: "Cell Phone Protection",
         subtitle: "Up to $800/claim · 2 claims/yr",
         maxValue: "Soft",
-        organic: { notes: "Up to $1,600/yr — pay phone bill with the card to activate", value: "Soft" },
+        organic: { notes: "Pay monthly phone bill with the card to activate", value: "Soft" },
       },
       {
         id: "purchase-protection",
         benefit: "Purchase & Travel Protections",
         subtitle: "Purchase protection · Extended warranty · Trip delay/cancellation",
         maxValue: "Soft",
-        organic: { notes: "Up to $10K/item purchase protection; $10K/trip cancellation; $500 trip delay", value: "Soft" },
+        organic: { notes: "Up to $10K/item purchase protection; $10K/trip cancellation; $500 trip delay (6+ hrs)", value: "Soft" },
       },
     ],
   },
@@ -600,7 +621,13 @@ const DEFAULT_CARDS: CardBenefitData[] = [
 ];
 
 export async function getCards(): Promise<CardBenefitData[]> {
-  const cards = await getData<CardBenefitData[]>("cards_v1", DEFAULT_CARDS);
+  const stored = await getData<CardBenefitData[]>("cards_v1", DEFAULT_CARDS);
+  const newAmexDefault = DEFAULT_CARDS.find((c) => c.id === "amex-platinum")!;
+  // Migrate: switched from Amex Business Platinum to the personal Amex Platinum.
+  // Swap it in place so the card keeps its position in the list.
+  const cards = stored.some((c) => c.id === "amex-platinum")
+    ? stored.filter((c) => c.id !== "amex-business-platinum")
+    : stored.map((c) => (c.id === "amex-business-platinum" ? newAmexDefault : c));
   // Migrate: move Apple TV+ & Apple Music from nonOrganic → organic on CSR
   // Add new cards that don't exist in stored data yet
   const storedIds = new Set(cards.map((c) => c.id));
@@ -609,13 +636,8 @@ export async function getCards(): Promise<CardBenefitData[]> {
     ...DEFAULT_CARDS.filter((c) => !storedIds.has(c.id)),
   ];
 
-  const newAmexDefault = DEFAULT_CARDS.find((c) => c.id === "amex-business-platinum")!;
   const newInkDefault = DEFAULT_CARDS.find((c) => c.id === "chase-ink-business")!;
   const migrated = withNew.map((card) => {
-    // Reset Amex Business Platinum if it has the old annual fee ($695) or old benefit IDs
-    if (card.id === "amex-business-platinum" && (card.annualFee !== 895 || card.benefits.some((b) => b.id === "digital"))) {
-      return newAmexDefault;
-    }
     // Reset Chase Ink if it has old points rows OR is missing new benefits like trip-delay
     if (card.id === "chase-ink-business" && (
       card.benefits.some((b) => b.id === "travel-points" || b.id === "ads-points") ||
