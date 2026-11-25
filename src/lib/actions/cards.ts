@@ -59,7 +59,8 @@ const DEFAULT_CARDS: CardBenefitData[] = [
       {
         id: "doordash",
         benefit: "DoorDash / DashPass Credits",
-        maxValue: 420,
+        subtitle: "DashPass + $15/mo restaurant (any order) + two $10/mo non-restaurant promos",
+        maxValue: 540,
         nonOrganic: { notes: "Occasional non-restaurant promo use", value: "~$60", icon: "hourglass" },
       },
       {
@@ -649,6 +650,15 @@ export async function getCards(): Promise<CardBenefitData[]> {
     return {
       ...card,
       benefits: card.benefits.map((row) => {
+        // Migrate: $5 monthly restaurant promo became $15 (usable on any order) on 10/1/26.
+        // Update the label and max value but keep the user's own usage notes.
+        if (row.id === "doordash" && row.maxValue !== 540) {
+          return {
+            ...row,
+            subtitle: "DashPass + $15/mo restaurant (any order) + two $10/mo non-restaurant promos",
+            maxValue: 540,
+          };
+        }
         if (row.id !== "apple-tv") return row;
         if (row.organic) return row; // already correct
         return {
